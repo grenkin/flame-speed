@@ -118,7 +118,7 @@ int main (void)
         while (1) {
             real_t param_new[PARAMS];
             for (int p = 0; p < PARAMS; ++p) {
-                if (optimize_param[p])
+                if (*optimize_param[p])
                     param_new[p] = *param_cur[p] - lambda / F_deriv2[p] * F_deriv[p];
                 else
                     param_new[p] = *param_cur[p];
