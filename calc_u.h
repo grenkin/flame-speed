@@ -3,6 +3,8 @@
 
 #include "input_data.h"
 
-real_t calc_u(const calc_u_Data&, const Config&);
+enum method_t { METHOD_TRAPEZOID, METHOD_RUNGE_KUTTA };
+
+real_t calc_u(const calc_u_Data&, const Config&, const method_t = METHOD_TRAPEZOID);
 
 #endif // CALC_U_H_INCLUDED
