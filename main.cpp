@@ -7,6 +7,21 @@
 #include "input_data.h"
 #include "calc_u.h"
 
+class PairStream {
+public:
+    PairStream(std::ostream &f): file(f) {}
+
+    template<typename T>
+    PairStream& operator<<(const T &t)
+    {
+        std::cout << t;
+        file << t;
+        return *this;
+    }
+
+    std::ostream &file;
+};
+
 int main (void)
 {
     std::cout << "Identification of reaction rate parameters in a combustion model\n\n";
@@ -41,6 +56,8 @@ int main (void)
     std::ofstream flog("log.txt");
     flog.precision(10);
     std::cout.precision(10);
+    PairStream pstr(flog);
+
     calc_u_Data data = data0;
     real_t A_cur, E_div_R_cur, alpha_cur, beta_cur, n_cur;
     real_t F;
@@ -64,14 +81,12 @@ int main (void)
         u_cur[j] = calc_u(data, config);
         F += w[j] * pow(u_cur[j] - uD[j], 2);
     }
-    std::cout << "A = " << A_cur << "\nE/R = " << E_div_R_cur << "\nalpha = " << alpha_cur << "\nbeta = " << beta_cur << "\nn = " << n_cur << "\nF = " << F << "\nlambda = " << lambda << "\n\n";
-    flog << "A = " << A_cur << "\nE/R = " << E_div_R_cur << "\nalpha = " << alpha_cur << "\nbeta = " << beta_cur << "\nn = " << n_cur << "\nF = " << F << "\nlambda = " << lambda << "\n\n";
+    pstr << "A = " << A_cur << "\nE/R = " << E_div_R_cur << "\nalpha = " << alpha_cur << "\nbeta = " << beta_cur << "\nn = " << n_cur << "\nF = " << F << "\nlambda = " << lambda << "\n\n";
 
     //the number of subsequent iterations at which lambda was not changed
     int lambda_not_changed = 0;
     for (int iter = 1; iter <= input_param.steps; ++iter) {
-        std::cout << "iteration " << input_param.prev_iterations + iter << "\n";
-        flog << "iteration " << input_param.prev_iterations + iter << "\n";
+        pstr << "iteration " << input_param.prev_iterations + iter << "\n";
         real_t F_A = 0, F_E_div_R = 0, F_alpha = 0, F_beta = 0, F_n = 0;
         real_t d_A = 0, d_E_div_R = 0, d_alpha = 0, d_beta = 0, d_n = 0;
         for (int j = 0; j < Dnum; ++j) {
@@ -174,26 +189,22 @@ int main (void)
             else {
                 lambda_not_changed = -1;
                 lambda /= 2;
-                std::cout << "lambda = " << lambda << "\n\n";
-                flog << "lambda = " << lambda << "\n\n";
+                pstr << "lambda = " << lambda << "\n\n";
                 ++lambda_decr;
                 if (lambda_decr == config.lambda_decr_max) {
-                    std::cout << "lambda_decr_max achieved\n";
-                    flog << "lambda_decr_max achieved\n";
+                    pstr << "lambda_decr_max achieved\n";
                     break;
                 }
             }
         }
         if (lambda_decr == config.lambda_decr_max)
             break;
-        std::cout << "A = " << A_cur << "\nE/R = " << E_div_R_cur << "\nalpha = " << alpha_cur << "\nbeta = " << beta_cur << "\nn = " << n_cur << "\nF = " << F << "\n\n";
-        flog << "A = " << A_cur << "\nE/R = " << E_div_R_cur << "\nalpha = " << alpha_cur << "\nbeta = " << beta_cur << "\nn = " << n_cur << "\nF = " << F << "\n\n";
+        pstr << "A = " << A_cur << "\nE/R = " << E_div_R_cur << "\nalpha = " << alpha_cur << "\nbeta = " << beta_cur << "\nn = " << n_cur << "\nF = " << F << "\n\n";
         ++lambda_not_changed;
         if (lambda_not_changed == config.lambda_threshold) {
             lambda_not_changed = 0;
             lambda *= 2;
-            std::cout << "lambda increased = " << lambda << "\n\n";
-            flog << "lambda increased = " << lambda << "\n\n";
+            pstr << "lambda increased = " << lambda << "\n\n";
         }
     } // for iter
 

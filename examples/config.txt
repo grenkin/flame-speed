@@ -1,0 +1,25 @@
+# Which parameters to optimize
+optimize_A = 1
+optimize_E/R = 1
+optimize_alpha = 1
+optimize_beta = 1
+optimize_n = 1
+
+# Differentiation steps
+delta_A = 1e5
+delta_E/R = 0.5
+delta_alpha = 0.0002
+delta_beta = 0.0002
+delta_n = 0.0001
+
+# Parameters of the gradient descent method
+lambda_threshold = 3
+lambda_decr_max = 50
+
+# Grid size for the trapezoid method
+N_trapezoid = 10000
+
+# Parameters of flame speed calculation
+u_eps = 1e-8
+u_init = 1.0
+max_u = 1000
