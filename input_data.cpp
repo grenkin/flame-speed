@@ -32,6 +32,17 @@ void get_double_param (const po::variables_map &vm, const char *param, real_t &v
         throw ParamIsNotSet(param);
 }
 
+void get_pos_double_param (const po::variables_map &vm, const char *param, real_t &val)
+{
+    if (vm.count(param)) {
+        val = vm[param].as<double>();
+        if (val < 0)
+            throw ParamIsNotPositive(param);
+    }
+    else
+        throw ParamIsNotSet(param);
+}
+
 void get_int_param (const po::variables_map &vm, const char *param, int &val)
 {
     if (vm.count(param)) {
@@ -91,16 +102,16 @@ InputParam read_input_param ()
         }
 
         InputParam input_param;
-        get_double_param(vm, "T0", input_param.data.T0);
-        get_double_param(vm, "D", input_param.data.D);
-        get_double_param(vm, "Q/cp", input_param.data.Q_div_cp);
-        get_double_param(vm, "nu", input_param.data.nu);
-        get_double_param(vm, "A", input_param.data.A);
-        get_double_param(vm, "E/R", input_param.data.E_div_R);
+        get_pos_double_param(vm, "T0", input_param.data.T0);
+        get_pos_double_param(vm, "D", input_param.data.D);
+        get_pos_double_param(vm, "Q/cp", input_param.data.Q_div_cp);
+        get_pos_double_param(vm, "nu", input_param.data.nu);
+        get_pos_double_param(vm, "A", input_param.data.A);
+        get_pos_double_param(vm, "E/R", input_param.data.E_div_R);
         get_double_param(vm, "alpha", input_param.data.alpha);
         get_double_param(vm, "beta", input_param.data.beta);
         get_double_param(vm, "n", input_param.data.n);
-        get_double_param(vm, "lambda", input_param.lambda_init);
+        get_pos_double_param(vm, "lambda", input_param.lambda_init);
         get_int_param(vm, "iterations", input_param.prev_iterations);
         get_int_param(vm, "steps", input_param.steps);
         return input_param;
@@ -134,8 +145,8 @@ Config read_config ()
             ("delta_alpha", po::value<double>(), "delta_alpha")
             ("delta_beta", po::value<double>(), "delta_beta")
             ("delta_n", po::value<double>(), "delta_n")
-            ("lambda_threshold", po::value<double>(), "lambda_threshold")
-            ("lambda_decr_max", po::value<double>(), "lambda_decr_max")
+            ("lambda_threshold", po::value<int>(), "lambda_threshold")
+            ("lambda_decr_max", po::value<int>(), "lambda_decr_max")
             ("N_trapezoid", po::value<int>(), "N_trapezoid")
             ("u_eps", po::value<double>(), "u_eps")
             ("u_init", po::value<double>(), "u_init")
@@ -157,17 +168,17 @@ Config read_config ()
         get_bool_param(vm, "optimize_alpha", config.optimize_alpha);
         get_bool_param(vm, "optimize_beta", config.optimize_beta);
         get_bool_param(vm, "optimize_n", config.optimize_n);
-        get_double_param(vm, "delta_A", config.delta_A);
-        get_double_param(vm, "delta_E/R", config.delta_E_div_R);
-        get_double_param(vm, "delta_alpha", config.delta_alpha);
-        get_double_param(vm, "delta_beta", config.delta_beta);
-        get_double_param(vm, "delta_n", config.delta_n);
-        get_double_param(vm, "lambda_threshold", config.lambda_threshold);
-        get_double_param(vm, "lambda_decr_max", config.lambda_decr_max);
+        get_pos_double_param(vm, "delta_A", config.delta_A);
+        get_pos_double_param(vm, "delta_E/R", config.delta_E_div_R);
+        get_pos_double_param(vm, "delta_alpha", config.delta_alpha);
+        get_pos_double_param(vm, "delta_beta", config.delta_beta);
+        get_pos_double_param(vm, "delta_n", config.delta_n);
+        get_int_param(vm, "lambda_threshold", config.lambda_threshold);
+        get_int_param(vm, "lambda_decr_max", config.lambda_decr_max);
         get_int_param(vm, "N_trapezoid", config.N_trapezoid);
-        get_double_param(vm, "u_eps", config.u_eps);
-        get_double_param(vm, "u_init", config.u_init);
-        get_double_param(vm, "max_u", config.max_u);
+        get_pos_double_param(vm, "u_eps", config.u_eps);
+        get_pos_double_param(vm, "u_init", config.u_init);
+        get_pos_double_param(vm, "max_u", config.max_u);
         return config;
     }
     catch (ParamIsNotSet e) {

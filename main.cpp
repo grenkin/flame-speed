@@ -9,6 +9,7 @@
 
 int main (void)
 {
+    std::cout << "Identification of reaction rate parameters in a combustion model\n\n";
     InputParam input_param = read_input_param();
     Config config = read_config();
     std::ifstream fin("experiment.txt");
@@ -136,11 +137,18 @@ int main (void)
 
         int lambda_decr = 0; // the number of subsequent decreases of lambda
         while (1) {
-            real_t A_new = A_cur - lambda / d_A * F_A;
-            real_t E_div_R_new = E_div_R_cur - lambda / d_E_div_R * F_E_div_R;
-            real_t alpha_new = alpha_cur - lambda / d_alpha * F_alpha;
-            real_t beta_new = beta_cur - lambda / d_beta * F_beta;
-            real_t n_new = n_cur - lambda / d_n * F_n;
+            real_t A_new = A_cur, E_div_R_new = E_div_R_cur,
+                alpha_new = alpha_cur, beta_new = beta_cur, n_new = n_cur;
+            if (config.optimize_A)
+                A_new = A_cur - lambda / d_A * F_A;
+            if (config.optimize_E_div_R)
+                E_div_R_new = E_div_R_cur - lambda / d_E_div_R * F_E_div_R;
+            if (config.optimize_alpha)
+                alpha_new = alpha_cur - lambda / d_alpha * F_alpha;
+            if (config.optimize_beta)
+                beta_new = beta_cur - lambda / d_beta * F_beta;
+            if (config.optimize_n)
+                n_new = n_cur - lambda / d_n * F_n;
             real_t F_new = 0;
             for (int j = 0; j < Dnum; ++j) {
                 data.phi = phiD[j];

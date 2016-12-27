@@ -22,7 +22,7 @@ struct InputParam {
 struct Config {
     bool optimize_A, optimize_E_div_R, optimize_alpha, optimize_beta, optimize_n;
     real_t delta_A, delta_E_div_R, delta_alpha, delta_beta, delta_n;
-    real_t lambda_threshold, lambda_decr_max;
+    int lambda_threshold, lambda_decr_max;
     int N_trapezoid;
     real_t u_eps, max_u, u_init;
 };
