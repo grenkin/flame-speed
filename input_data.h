@@ -7,9 +7,9 @@ const std::string file_config = "config.txt";
 typedef long double real_t;
 
 struct calc_u_Data {
-    real_t T0, D, Q_div_cp, nu;
+    real_t T0, D, nu;
     real_t A, E_div_R, alpha, beta, n;
-    real_t phi;
+    real_t phi, Q_div_cp;
 };
 
 struct InputParam {

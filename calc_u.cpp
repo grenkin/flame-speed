@@ -16,7 +16,7 @@ std::string temperature_str (const temperature_t t)
         return "UP";
 }
 
-inline real_t calc_z(const calc_u_Data &data)
+real_t calc_z(const calc_u_Data &data)
 {
     return data.nu * (1 + 3.762 * 28. / 32.);
 }

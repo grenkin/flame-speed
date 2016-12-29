@@ -1,18 +1,17 @@
 # Physical data
 T0 = 298
 D = 2.5e-5
-Q/cp = 43000
 nu = 4
 
 # Initial guess for optimization
-A = 175856605.2
-E/R = 28090.43838
-alpha = -0.1942796549
-beta = 0.7895020112
-n = 0.1073498682
+A = 2e8
+E/R = 15042
+alpha = 1.5
+beta = 0.1
+n = 0
 
 # Initial value of lambda
-lambda = 0.8
+lambda = 0.1
 # Number of previous iterations
 iterations = 0
 

@@ -80,7 +80,6 @@ InputParam read_input_param ()
         desc.add_options()
             ("T0", po::value<double>(), "T0")
             ("D", po::value<double>(), "D")
-            ("Q/cp", po::value<double>(), "Q/cp")
             ("nu", po::value<double>(), "nu")
             ("A", po::value<double>(), "A")
             ("E/R", po::value<double>(), "E/R")
@@ -104,7 +103,6 @@ InputParam read_input_param ()
         InputParam input_param;
         get_pos_double_param(vm, "T0", input_param.data.T0);
         get_pos_double_param(vm, "D", input_param.data.D);
-        get_pos_double_param(vm, "Q/cp", input_param.data.Q_div_cp);
         get_pos_double_param(vm, "nu", input_param.data.nu);
         get_pos_double_param(vm, "A", input_param.data.A);
         get_pos_double_param(vm, "E/R", input_param.data.E_div_R);

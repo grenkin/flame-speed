@@ -27,17 +27,46 @@ int main (void)
     std::cout << "Identification of reaction rate parameters in a combustion model\n\n";
     InputParam input_param = read_input_param();
     Config config = read_config();
-    std::ifstream fin("experiment.txt");
-    if (!fin) {
-        std::cerr << "Can not open input file: experiment.txt" << "\n";
+    std::ifstream fe("flame_speed.txt");
+    if (!fe) {
+        std::cerr << "Can not open input file: flame_speed.txt\n";
         getch();
         exit(1);
     }
     int Dnum;
-    fin >> Dnum;
-    std::vector<real_t> phiD(Dnum), uD(Dnum), w(Dnum);
+    fe >> Dnum;
+    std::vector<real_t> phiD(Dnum), uD(Dnum), w(Dnum), Q_div_cp(Dnum);
     for (int j = 0; j < Dnum; ++j) {
-        fin >> phiD[j] >> uD[j] >> w[j];
+        fe >> phiD[j] >> uD[j] >> w[j];
+    }
+    int Bnum;
+    std::ifstream fb("burnt_temperature.txt");
+    if (!fb) {
+        std::cerr << "Can not open input file: burnt_temperature.txt\n";
+        getch();
+        exit(1);
+    }
+    fb >> Bnum;
+    std::vector<real_t> phiB(Bnum), TB(Bnum);
+    for (int k = 0; k < Bnum; ++k)
+        fb >> phiB[k] >> TB[k];
+    real_t z_val = calc_z(input_param.data);
+    for (int j = 0; j < Dnum; ++j) {
+        bool ok = false;
+        for (int k = 0; k < Bnum - 1; ++k) {
+            if (phiB[k] <= phiD[j] && phiD[j] <= phiB[k+1]) {
+                real_t Tb = TB[k] + (TB[k+1] - TB[k]) * (phiD[j] - phiB[k]) / (phiB[k+1] - phiB[k]);
+                Q_div_cp[j] = (Tb - input_param.data.T0)
+                    * (phiD[j] + z_val) / fmin(phiD[j], 1);
+                ok = true;
+                break;
+            }
+        }
+        if (!ok) {
+            std::cerr << "Undefined adiabatic temperature: phi = " << phiD[j] << "\n";
+            getch();
+            exit(1);
+        }
     }
 
     std::ofstream flog("log.txt");
@@ -76,6 +105,7 @@ int main (void)
     F = 0;
     for (int j = 0; j < Dnum; ++j) {
         data.phi = phiD[j];
+        data.Q_div_cp = Q_div_cp[j];
         for (int p = 0; p < PARAMS; ++p)
             *data_param[p] = *param_cur[p];
         u_cur[j] = calc_u(data, config);
@@ -103,6 +133,7 @@ int main (void)
                         *data_param[q] = *param_cur[q];
                 }
                 data.phi = phiD[j];
+                data.Q_div_cp = Q_div_cp[j];
                 real_t u_val = calc_u(data, config);
                 // derivative with respect to p-th parameter
                 real_t u_deriv = (u_val - u_cur[j]) / *delta[p];
@@ -126,6 +157,7 @@ int main (void)
             real_t F_new = 0;
             for (int j = 0; j < Dnum; ++j) {
                 data.phi = phiD[j];
+                data.Q_div_cp = Q_div_cp[j];
                 for (int p = 0; p < PARAMS; ++p)
                     *data_param[p] = param_new[p];
                 u_new[j] = calc_u(data, config);
@@ -171,7 +203,6 @@ int main (void)
     fout.precision(10);
     fout << "T0 = " << data0.T0 << "\n";
     fout << "D = " << data0.D << "\n";
-    fout << "Q/cp = " << data0.Q_div_cp << "\n";
     fout << "nu = " << data0.nu << "\n\n";
     for (int p = 0; p < PARAMS; ++p)
         fout << param_name[p] << " = " << *param_cur[p] << "\n";
