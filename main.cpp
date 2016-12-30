@@ -25,6 +25,7 @@ public:
 int main (void)
 {
     std::cout << "Identification of reaction rate parameters in a combustion model\n\n";
+    //Read input data
     InputParam input_param = read_input_param();
     Config config = read_config();
     std::ifstream fe("flame_speed.txt");
@@ -55,9 +56,9 @@ int main (void)
         bool ok = false;
         for (int k = 0; k < Bnum - 1; ++k) {
             if (phiB[k] <= phiD[j] && phiD[j] <= phiB[k+1]) {
+                // interpolate the temperature data
                 real_t Tb = TB[k] + (TB[k+1] - TB[k]) * (phiD[j] - phiB[k]) / (phiB[k+1] - phiB[k]);
-                Q_div_cp[j] = (Tb - input_param.data.T0)
-                    * (phiD[j] + z_val) / fmin(phiD[j], 1);
+                Q_div_cp[j] = (Tb - input_param.data.T0) * (phiD[j] + z_val) / fmin(phiD[j], 1);
                 ok = true;
                 break;
             }
@@ -74,20 +75,27 @@ int main (void)
     std::cout.precision(10);
     PairStream pstr(flog);
 
+    // data0 contains unchangeable data and initial guess
     calc_u_Data data0 = input_param.data;
     real_t lambda_init = input_param.lambda_init;
+    // deltas are steps for numerical differentiation
     real_t delta_A = config.delta_A;
     real_t delta_E_div_R = config.delta_E_div_R;
     real_t delta_alpha = config.delta_alpha;
     real_t delta_beta = config.delta_beta;
     real_t delta_n = config.delta_n;
 
+    // data contains data for current flame speed calculations
     calc_u_Data data = data0;
+    // ..._cur are current guesses of parameters
     real_t A_cur, E_div_R_cur, alpha_cur, beta_cur, n_cur;
-    real_t F;
+    // F_cur contains the value of the objective function corresponding to parameters ..._cur
+    real_t F_cur;
+    // u_cur contains the values of the flame speeds corresponding to parameters ..._cur
     std::vector<real_t> u_cur(Dnum), u_new(Dnum);
     real_t lambda;
 
+    // Define arrays of pointers for convenient access to 5 parameters
     const int PARAMS = 5;
     real_t *param_cur[PARAMS] = {&A_cur, &E_div_R_cur, &alpha_cur, &beta_cur, &n_cur};
     real_t *delta[PARAMS] = {&delta_A, &delta_E_div_R, &delta_alpha, &delta_beta, &delta_n};
@@ -97,28 +105,31 @@ int main (void)
     std::string param_name[PARAMS] = {"A", "E/R", "alpha", "beta", "n"};
 
     lambda = lambda_init;
+    // Define the initial guess
     A_cur = data0.A;
     E_div_R_cur = data0.E_div_R;
     alpha_cur = data0.alpha;
     beta_cur = data0.beta;
     n_cur = data0.n;
-    F = 0;
+    // Calculate the flame speeds u_cur and the objective function F_cur
+    F_cur = 0;
     for (int j = 0; j < Dnum; ++j) {
         data.phi = phiD[j];
         data.Q_div_cp = Q_div_cp[j];
         for (int p = 0; p < PARAMS; ++p)
             *data_param[p] = *param_cur[p];
         u_cur[j] = calc_u(data, config);
-        F += w[j] * pow(u_cur[j] - uD[j], 2);
+        F_cur += w[j] * pow(u_cur[j] - uD[j], 2);
     }
     for (int p = 0; p < PARAMS; ++p)
         pstr << param_name[p] << " = " << *param_cur[p] << "\n";
-    pstr << "F = " << F << "\nlambda = " << lambda << "\n\n";
+    pstr << "F = " << F_cur << "\nlambda = " << lambda << "\n\n";
 
-    //the number of subsequent iterations at which lambda was not changed
+    //lambda_not_changed is the number of subsequent iterations at which lambda was not changed
     int lambda_not_changed = 0;
     for (int iter = 1; iter <= input_param.steps; ++iter) {
         pstr << "iteration " << input_param.prev_iterations + iter << "\n";
+        // F_deriv and F_deriv2 are approximations of the first and the second derivatives of F
         real_t F_deriv[PARAMS], F_deriv2[PARAMS];
         for (int p = 0; p < PARAMS; ++p) {
             F_deriv[p] = 0;
@@ -126,6 +137,8 @@ int main (void)
         }
         for (int j = 0; j < Dnum; ++j) {
             for (int p = 0; p < PARAMS; ++p) {
+                if (!*optimize_param[p])
+                    break;
                 for (int q = 0; q < PARAMS; ++q) {
                     if (q == p)
                         *data_param[q] = *param_cur[q] + *delta[q];
@@ -147,6 +160,7 @@ int main (void)
 
         int lambda_decr = 0; // the number of subsequent decreases of lambda
         while (1) {
+            // Calculate the new guess
             real_t param_new[PARAMS];
             for (int p = 0; p < PARAMS; ++p) {
                 if (*optimize_param[p])
@@ -154,6 +168,7 @@ int main (void)
                 else
                     param_new[p] = *param_cur[p];
             }
+            // Calculate the flame speeds and the objective function for the new guess
             real_t F_new = 0;
             for (int j = 0; j < Dnum; ++j) {
                 data.phi = phiD[j];
@@ -163,15 +178,17 @@ int main (void)
                 u_new[j] = calc_u(data, config);
                 F_new += w[j] * pow(u_new[j] - uD[j], 2);
             }
-            if (F_new <= F) {
+            if (F_new <= F_cur) {
+                // Accept the new guess
                 for (int p = 0; p < PARAMS; ++p)
                     *param_cur[p] = param_new[p];
-                F = F_new;
+                F_cur = F_new;
                 for (int j = 0; j < Dnum; ++j)
                     u_cur[j] = u_new[j];
                 break;
             }
             else {
+                // Reject the new guess and decrease lambda
                 lambda_not_changed = -1;
                 lambda /= 2;
                 pstr << "lambda = " << lambda << "\n\n";
@@ -186,8 +203,10 @@ int main (void)
             break;
         for (int p = 0; p < PARAMS; ++p)
             pstr << param_name[p] << " = " << *param_cur[p] << "\n";
-        pstr << "F = " << F << "\n\n";
+        pstr << "F = " << F_cur << "\n\n";
         ++lambda_not_changed;
+        // If lambda was not decreased for many times, then increase lambda;
+        // if lambda was not increased for many times, then increase lambda again
         if (lambda_not_changed == config.lambda_threshold) {
             lambda_not_changed = 0;
             lambda *= 2;
@@ -195,10 +214,12 @@ int main (void)
         }
     } // for iter
 
+    // Print data for plotting
     std::ofstream fout_u("plot.txt");
     for (int i = 0; i < Dnum; ++i)
         fout_u << phiD[i] << "   " << u_cur[i] << "   " << uD[i] << "\n";
 
+    // Print output parameters
     std::ofstream fout("output_param.txt");
     fout.precision(10);
     fout << "T0 = " << data0.T0 << "\n";
