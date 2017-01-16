@@ -87,7 +87,7 @@ InputParam read_input_param ()
             ("beta", po::value<double>(), "beta")
             ("n", po::value<double>(), "n")
             ("lambda", po::value<double>(), "lambda")
-            ("iterations", po::value<int>(), "iterations")
+            ("prev_iterations", po::value<int>(), "prev_iterations")
             ("steps", po::value<int>(), "steps")
         ;
 
@@ -110,7 +110,7 @@ InputParam read_input_param ()
         get_double_param(vm, "beta", input_param.data.beta);
         get_double_param(vm, "n", input_param.data.n);
         get_pos_double_param(vm, "lambda", input_param.lambda_init);
-        get_int_param(vm, "iterations", input_param.prev_iterations);
+        get_int_param(vm, "prev_iterations", input_param.prev_iterations);
         get_int_param(vm, "steps", input_param.steps);
         return input_param;
     }

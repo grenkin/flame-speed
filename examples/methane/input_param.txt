@@ -13,7 +13,7 @@ n = 0
 # Initial value of lambda
 lambda = 0.1
 # Number of previous iterations
-iterations = 0
+prev_iterations = 0
 
 # Number of steps of the gradient descent method
 steps = 1000
