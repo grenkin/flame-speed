@@ -1,0 +1,16 @@
+# Vagelopoulos, Egelfoulous, 1998
+
+T0 = 298
+D = 2.5e-005
+nu = 4
+
+A = 5345081796
+E/R = 29924.12096
+alpha = 0.3937191969
+beta = 1.137708216
+n = 0.6648807713
+
+lambda = 0.4
+iterations = 33293
+
+steps = 10000

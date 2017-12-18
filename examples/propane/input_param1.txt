@@ -1,0 +1,16 @@
+# Vagelopoulos & Egolfopoulos, 1998
+
+T0 = 298
+D = 2.5e-005
+nu = 3.63
+
+A = 364098486.1
+E/R = 20872.8314
+alpha = 0.4019525393
+beta = 0.645615931
+n = 0.1589199662
+
+lambda = 0.8
+prev_iterations = 9374
+
+steps = 0

@@ -1,0 +1,16 @@
+# Egolfopoulos et al.
+
+T0 = 298
+D = 2.5e-005
+nu = 3.428
+
+A = 283877109.6
+E/R = 21590.81603
+alpha = 0.268187474
+beta = 0.4368870833
+n = 0.1322550695
+
+lambda = 0.4
+prev_iterations = 2620
+
+steps = 0

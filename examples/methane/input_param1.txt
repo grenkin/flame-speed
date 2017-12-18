@@ -1,19 +1,21 @@
+# Experimental data from Vagelopoulos, 1994
+
 # Physical data
 T0 = 298
 D = 2.5e-5
 nu = 4
 
 # Initial guess for optimization
-A = 2e8
-E/R = 15042
-alpha = 1.5
-beta = 0.1
-n = 0
+A = 2033598046
+E/R = 31323.99996
+alpha = 0.215612024
+beta = 0.6189018721
+n = 0.5171546967
 
 # Initial value of lambda
-lambda = 0.1
+lambda = 0.4
 # Number of previous iterations
-prev_iterations = 0
+prev_iterations = 36543
 
 # Number of steps of the gradient descent method
 steps = 1000
