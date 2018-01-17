@@ -9,17 +9,19 @@
 
 class PairStream {
 public:
-    PairStream(std::ostream &f): file(f) {}
+    std::ostream &file;
+
+    PairStream (std::ostream &f)
+        : file(f)
+    {}
 
     template<typename T>
-    PairStream& operator<<(const T &t)
+    PairStream& operator<< (const T &t)
     {
         std::cout << t;
         file << t;
         return *this;
     }
-
-    std::ostream &file;
 };
 
 int main (void)
@@ -70,7 +72,7 @@ int main (void)
         }
     }
 
-    std::ofstream flog("log.txt");
+    std::ofstream flog("log.txt", std::ios_base::app);
     flog.precision(10);
     std::cout.precision(10);
     PairStream pstr(flog);
@@ -212,6 +214,19 @@ int main (void)
             lambda *= 2;
             pstr << "lambda increased = " << lambda << "\n\n";
         }
+
+        // Print output parameters
+        std::ofstream fout("input_param.txt");
+        fout.precision(10);
+        fout << "T0 = " << data0.T0 << "\n";
+        fout << "D = " << data0.D << "\n";
+        fout << "nu = " << data0.nu << "\n\n";
+        for (int p = 0; p < PARAMS; ++p)
+            fout << param_name[p] << " = " << *param_cur[p] << "\n";
+        fout << "\nlambda = " << lambda << "\n";
+        fout << "prev_iterations = " << input_param.prev_iterations + iter << "\n\n";
+        fout << "steps = " << input_param.steps;
+
     } // for iter
 
     // Print data for plotting
@@ -228,7 +243,7 @@ int main (void)
     for (int p = 0; p < PARAMS; ++p)
         fout << param_name[p] << " = " << *param_cur[p] << "\n";
     fout << "\nlambda = " << lambda << "\n";
-    fout << "iterations = " << input_param.prev_iterations + input_param.steps << "\n\n";
+    fout << "prev_iterations = " << input_param.prev_iterations + input_param.steps << "\n\n";
     fout << "steps = " << input_param.steps;
 
     return 0;

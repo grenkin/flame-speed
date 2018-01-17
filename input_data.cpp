@@ -154,7 +154,7 @@ Config read_config ()
         po::variables_map vm;
         std::ifstream ifs(file_config.c_str());
         if (!ifs)
-            print_error("Can not open input file: " + file_input_param);
+            print_error("Can not open input file: " + file_config);
         else {
             po::store(parse_config_file(ifs, desc), vm);
             po::notify(vm);
