@@ -1,9 +1,12 @@
 #include <cmath>
 #include <fstream>
+#include "calc_u.h"
+
+#ifdef RUNGE_KUTTA
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_odeiv2.h>
-#include "calc_u.h"
+#endif
 
 enum temperature_t { DOWN, UP, L_ACHIEVED };
 class umax_achieved {};
@@ -57,6 +60,7 @@ struct rk_Data {
     real_t u;
 };
 
+#ifdef RUNGE_KUTTA
 int func(double t, const double y[], double dydt[], void *params)
 {
     rk_Data* rk_data = (rk_Data*)params;
@@ -113,6 +117,7 @@ temperature_t calc_temperature_rk (const real_t u, const calc_u_Data& data)
     gsl_odeiv2_step_free(s);
     return L_ACHIEVED;
 }
+#endif
 
 real_t calc_u (const calc_u_Data &data, const Config &config, const method_t method)
 {
@@ -120,10 +125,14 @@ real_t calc_u (const calc_u_Data &data, const Config &config, const method_t met
     temperature_t temperature_res = DOWN;
     while (u <= config.max_u && temperature_res == DOWN) {
         u *= 2;
+#ifdef RUNGE_KUTTA
         if (method == METHOD_TRAPEZOID)
+#endif
             temperature_res = calc_temperature(u, data, config.N_trapezoid);
+#ifdef RUNGE_KUTTA
         else
             temperature_res = calc_temperature_rk(u, data);
+#endif
     }
     if (u > config.max_u)
         throw umax_achieved();
@@ -131,10 +140,14 @@ real_t calc_u (const calc_u_Data &data, const Config &config, const method_t met
     long double right = u;
     while (right - left > config.u_eps) {
         u = (left + right) / 2;
+#ifdef RUNGE_KUTTA
         if (method == METHOD_TRAPEZOID)
+#endif
             temperature_res = calc_temperature(u, data, config.N_trapezoid);
+#ifdef RUNGE_KUTTA
         else
             temperature_res = calc_temperature_rk(u, data);
+#endif
         if (temperature_res == UP)
             right = u;
         else if (temperature_res == DOWN)
