@@ -299,9 +299,9 @@ int main (void)
                                 max_ui[i] = config.max_u;
                             }
 
-                            pstr << "\nmin u[" << i+1 << "] = " << min_ui[i]
+                          /*  pstr << "\nmin u[" << i+1 << "] = " << min_ui[i]
                                 << ",  max u[" << i+1 << "] = " << max_ui[i] << "\n";
-
+*/
                             if (min_ui[i] > config.max_speed) {
                                 too_large_speed = true;
                                 pstr << "Too large speed\n\n";
@@ -334,9 +334,9 @@ int main (void)
                                 max_dui_dxk[i][k] = (u1 - u0) / *delta[k]
                                     * sign(u_deriv_sign[k]);
 
-                                pstr << "du[" << i+1 << "]/d" << param_name[k]
+                             /*   pstr << "du[" << i+1 << "]/d" << param_name[k]
                                     << " = " << min_dui_dxk[i][k] << " - "
-                                    << max_dui_dxk[i][k] << "\n";
+                                    << max_dui_dxk[i][k] << "\n"; */
                                 // TODO: поставить минусы перед du/dx
                             }
                         }
@@ -360,15 +360,22 @@ int main (void)
                         // найти множество S_eps
 
                         real_t a[data_size][PARAMS_NUM], b[data_size];
-                        for (int i = 0; i < data_size; ++i) {
+                       /* for (int i = 0; i < data_size; ++i) {
                             // !!! программа плохо спроектирована,
                             //   потому что эти присваивания легко забыть
                             data.phi = phi_data[i];
                             data.Q_div_cp = Q_div_cp_data[i];
 
                             for (int j = 0; j < PARAMS_NUM; ++j) {
-                                //a[i][j] = min_dui_dxk[i][j];
-                                real_t u0 = min_dui_dxk[i][j];
+                               // a[i][j] = min_dui_dxk[i][j];
+
+                               //a[i][j] = max_dui_dxk[i][j];
+
+                               a[i][j] = max_dui_dxk[i][j];
+
+                              // a[i][j] = (max_dui_dxk[i][j] + min_dui_dxk[i][j]) / 2;
+
+                               /* real_t u0 = min_dui_dxk[i][j];
                                 for (int p = 0; p < PARAMS_NUM; ++p) {
                                     *data_param[p] = x_left[p]
                                         * sign(u_deriv_sign[p]);
@@ -377,13 +384,40 @@ int main (void)
                                     * sign(u_deriv_sign[j]);
                                 real_t u1 = calc_u(data, config);
                                 a[i][j] = (u1 - u0) / (x_right[j] - x_left[j]);
-                            }
+                                */
+                           /* }
+                            // вычисляем b[i] в точке x_left,
+                            //    в которой u = min_ui[i]
+                            b[i] = min_ui[i];
+                            for (int j = 0; j < PARAMS_NUM; ++j)
+                                b[i] -= a[i][j] * x_left[j];
+                        }*/
+
+                        for (int i = 0; i < data_size; ++i) {
+                            for (int j = 0; j < PARAMS_NUM; ++j)
+                                //a[i][j] = (max_ui[i] - min_ui[i]) / (x_right[j] - x_left[j]);
+                               // a[i][j] = max_dui_dxk[i][j];  // так лучше?
+                                a[i][j] = min_dui_dxk[i][j];
+                                // a[i][j] = (min_dui_dxk[i][j] + max_dui_dxk[i][j]) / 2;
                             // вычисляем b[i] в точке x_left,
                             //    в которой u = min_ui[i]
                             b[i] = min_ui[i];
                             for (int j = 0; j < PARAMS_NUM; ++j)
                                 b[i] -= a[i][j] * x_left[j];
                         }
+
+                        // calculate maximum of the linear approximation of u
+//                        for (int p = 0; p < PARAMS_NUM; ++p)
+                            //*data_param[p] = x_right[p] * sign(u_deriv_sign[p]);
+                        for (int i = 0; i < data_size; ++i) {
+                            real_t sum = b[i];
+                            for (int j = 0; j < PARAMS_NUM; ++j) {
+                                sum += a[i][j] * x_right[j];
+                            }
+                            //pstr << "max_lin_u[i] = " << calc_u(data, config) << "\n";
+                            pstr << "max_lin_u[i] = " << sum << "\n";
+                        }
+
                         real_t sum_aik_i[PARAMS_NUM];
                         for (int k = 0; k < PARAMS_NUM; ++k) {
                             sum_aik_i[k] = 0;
@@ -409,13 +443,13 @@ int main (void)
                             }
                         }
 
-                        for (int i = 0; i < data_size; ++i) {
+                      /*  for (int i = 0; i < data_size; ++i) {
                             pstr << "eps1[" << i + 1 << "] = " << eps1[i] << "\n";
                             for (int k = 0; k < PARAMS_NUM; ++k) {
                                 pstr << "eps2[" << i + 1 << ", " << param_name[k]
                                     << "] = " << eps2[i][k] << "\n";
                             }
-                        }
+                        } */
 
                         real_t eps1_max = 0.0, eps2_max = 0.0;
                         for (int i = 0; i < data_size; ++i) {
@@ -426,10 +460,10 @@ int main (void)
 
                         real_t eps = eps1_max + eps2_max;
                         pstr << "eps = " << eps << "\n";
-                        for (int k = 0; k < PARAMS_NUM; ++k) {
+                      /*  for (int k = 0; k < PARAMS_NUM; ++k) {
                             pstr << "sum_aik_i[" << param_name[k] << "] = "
                                 << sum_aik_i[k] << "\n";
-                        }
+                        } */
 
                         // TODO: реализовать отдельную функцию для решения СЛАУ
 
@@ -444,11 +478,15 @@ int main (void)
                                 for (int i = 0; i < data_size; ++i)
                                     sum += a[i][j] * a[i][k];
                                 gsl_matrix_set(mat, k, j, sum);  // mat[k, j] = sum
-                                std::cout << "mat[" << k << ", " << j << "] = " << sum << " ";
+                               // pstr << "mat[" << k << ", " << j << "] = " << sum << " ";
                             }
-                            std::cout << "\n";
+                            pstr << "\n";
                         }
-                        // fill right-hand side of the linear system
+
+                        // find Cholesky decomposition of the matrix
+                        gsl_linalg_cholesky_decomp(mat);
+
+                    /*    // fill right-hand side of the linear system
                         for (int k = 0; k < PARAMS_NUM; ++k) {
                             real_t sum = eps * sum_aik_i[k];
                             for (int i = 0; i < data_size; ++i) {
@@ -457,7 +495,6 @@ int main (void)
                             gsl_vector_set(vec, k, sum);
                         }
 
-                        gsl_linalg_cholesky_decomp(mat);
                         gsl_linalg_cholesky_solve(mat, vec, x_vec);
                         for (int k = 0; k < PARAMS_NUM; ++k)
                             r[k] = gsl_vector_get(x_vec, k);
@@ -475,6 +512,7 @@ int main (void)
                         gsl_linalg_cholesky_solve(mat, vec, x_vec);
                         for (int k = 0; k < PARAMS_NUM; ++k)
                             l[k] = gsl_vector_get(x_vec, k);
+*/
 
                         // fill right-hand side of a new linear system
                         real_t lin_sol[PARAMS_NUM];
@@ -486,12 +524,79 @@ int main (void)
                             gsl_vector_set(vec, k, sum);
                         }
 
+
                        // gsl_linalg_cholesky_decomp(mat);
                         gsl_linalg_cholesky_solve(mat, vec, x_vec);
                         for (int k = 0; k < PARAMS_NUM; ++k)
                             lin_sol[k] = gsl_vector_get(x_vec, k);
 
-                        // calculate linear objective function
+                        // вычисляем b[i] в точке x_right,
+                        //    в которой u = max_ui[i]
+                        for (int i = 0; i < data_size; ++i) {
+                            b[i] = max_ui[i];
+                            for (int j = 0; j < PARAMS_NUM; ++j)
+                                b[i] -= a[i][j] * x_right[j];
+                        }
+
+                        real_t lin_sol2[PARAMS_NUM];
+                        for (int k = 0; k < PARAMS_NUM; ++k) {
+                            real_t sum = 0;
+                            for (int i = 0; i < data_size; ++i) {
+                                sum -= a[i][k] * (b[i] - v_data[i]);
+                            }
+                            gsl_vector_set(vec, k, sum);
+                        }
+                        gsl_linalg_cholesky_solve(mat, vec, x_vec);
+                        for (int k = 0; k < PARAMS_NUM; ++k)
+                            lin_sol2[k] = gsl_vector_get(x_vec, k);
+
+                        for (int k = 0; k < PARAMS_NUM; ++k) {
+                            l[k] = lin_sol[k];
+                            r[k] = lin_sol2[k];
+                        }
+
+                        /*
+                        // deviations_rhs[k]
+                        real_t deviations_rhs[PARAMS_NUM];
+                        for (int k = 0; k < PARAMS_NUM; ++k) {
+                            deviations_rhs[k] = eps * sum_aik_i[k];
+                        }
+                        // basis_sol[j][k], k=1..n содержит решение СЛАУ,
+                        // где правая часть - базисный вектор e[j]
+                        real_t basis_sol[PARAMS_NUM][PARAMS_NUM];
+                        for (int j = 0; j < PARAMS_NUM; ++j) {
+                            // берем правую часть с базисным вектором e[j]
+
+                            for (int k = 0; k < PARAMS_NUM; ++k) {
+                                if (k == j)
+                                   // gsl_vector_set(vec, k, 1.0);
+                                    gsl_vector_set(vec, k, deviations_rhs[k]);
+                                else
+                                    gsl_vector_set(vec, k, 0.0);
+                            }
+                            gsl_linalg_cholesky_solve(mat, vec, x_vec);
+                            for (int k = 0; k < PARAMS_NUM; ++k)
+                                basis_sol[j][k] = gsl_vector_get(x_vec, k);
+                            std::cout << "basis_sol[" << j << "]:\n";
+                            for (int k = 0; k < PARAMS_NUM; ++k)
+                                std::cout << basis_sol[j][k] << " ";
+                            std::cout << "\n";
+                        }
+
+                        // max deviations from lin_sol[k]
+                        real_t deviations_sol[PARAMS_NUM];
+                        for (int k = 0; k < PARAMS_NUM; ++k) {
+                            real_t sum = 0.0;
+                            for (int j = 0; j < PARAMS_NUM; ++j) {
+                                sum += fabs(basis_sol[j][k]); //* deviations_rhs[k]);
+                            }
+                            deviations_sol[k] = sum;
+                            l[k] = lin_sol[k] - deviations_sol[k];
+                            r[k] = lin_sol[k] + deviations_sol[k];
+                        }
+                        */
+
+                     /*   // calculate linear objective function
                         real_t lin_obj_func = 0.0;
                         for (int i = 0; i < data_size; ++i) {
                             real_t term = 0;
@@ -501,13 +606,19 @@ int main (void)
                             term += b[i] - v_data[i];
                             lin_obj_func += 0.5 * pow(term, 2);
                         }
-                        // calculate nonlinear objective function
+                       */ // calculate nonlinear objective function
                         real_t nonlin_obj_func = 0.0;
                         for (int i = 0; i < data_size; ++i) {
-                            real_t term = 0;
-
+                            data.phi = phi_data[i];
+                            data.Q_div_cp = Q_div_cp_data[i];
+                            for (int p = 0; p < PARAMS_NUM; ++p) {
+                                *data_param[p] = lin_sol[p]
+                                    * sign(u_deriv_sign[p]);
+                            }
+                            real_t u = calc_u(data, config);
+                            real_t term = u - v_data[i];
+                            nonlin_obj_func += 0.5 * pow(term, 2);
                         }
-
 
                         gsl_vector_free(x_vec);
                         gsl_vector_free(vec);
@@ -534,16 +645,17 @@ int main (void)
                                 real_t tmp = l[k];
                                 l[k] = r[k];
                                 r[k] = tmp;
+                             //   pstr << "swap\n";
                             }
                         }
 
-                        std::cout << "l: ";
+                        pstr << "l: ";
                         for (int k = 0; k < PARAMS_NUM; ++k)
-                            std::cout << l[k] << " ";
-                        std::cout << "\n r: ";
+                            pstr << l[k] << " ";
+                        pstr << "\n r: ";
                         for (int k = 0; k < PARAMS_NUM; ++k)
-                            std::cout << r[k] << " ";
-                        std::cout << "\n\n";
+                            pstr << r[k] << " ";
+                        pstr << "\n\n";
 
                         // create intervals [l, r]
                         Interval S_eps[PARAMS_NUM];
@@ -567,17 +679,23 @@ int main (void)
                         }
                         pstr << "S_eps :\n";
                         for (int k = 0; k < PARAMS_NUM; ++k) {
-                            pstr << param_name[k] << " = "
-                                << S_eps[k].left << " .. "
+                            pstr << param_name[k] << "_left = "
+                                << S_eps[k].left << "\n"
+                                << param_name[k] << "_right = "
                                 << S_eps[k].right << "\n";
                         }
                         pstr << "\n";
 
-                        for (int j = 0; j < PARAMS_NUM; ++j) {
+                       /* for (int j = 0; j < PARAMS_NUM; ++j) {
                             pstr << "lin_sol[" << param_name[j] << "] = "
-                                << lin_sol[j] * sign(u_deriv_sign[j]) << "\n";
+                                << lin_sol[j] * sign(u_deriv_sign[j])
+                                << "   lin_sol2[" << param_name[j] << "] = "
+                                << lin_sol2[j] * sign(u_deriv_sign[j]) << "\n";
                         }
-                        pstr << "\n";
+                        pstr << "\n"; */
+
+                        // TODO: вывести пересечение отдельно по каждой координате -
+                        //    одна координата в одну строчку
 
                         // проверяем, что решение линейной задачи
                         //    принадлежит рассматриваемому диапазону
@@ -593,15 +711,19 @@ int main (void)
                                 "inside the range.\n\n";
 
                         // output intersection
-                        if (!empty_sol && inside_the_range) {
+                        if (!empty_sol) {
                             pstr << "Intersection:\n";
+                            if (!inside_the_range)
+                                fout << "not inside the range\n";
                             for (int k = 0; k < PARAMS_NUM; ++k) {
-                                fout << param_name[k] << " = "
-                                    << sol[k].left << " .. "
+                                //fout
+                                pstr << param_name[k] << "_left = "
+                                    << sol[k].left << "\n "
+                                    << param_name[k] << "_right = "
                                     << sol[k].right << "\n";
-                                pstr << param_name[k] << " = "
+                               /* pstr << param_name[k] << " = "
                                     << sol[k].left << " .. "
-                                    << sol[k].right << "\n";
+                                    << sol[k].right << "\n"; */
                             }
                             fout << "\n";
                             pstr << "\n";
@@ -610,7 +732,7 @@ int main (void)
                             pstr << "Empty intersection\n\n";
                         }
 
-                        // calculate objective function
+                    /*    // calculate objective function
                         real_t sum = 0;
                         for (int i = 0; i < data_size; ++i) {
                             real_t term = 0;
@@ -622,9 +744,10 @@ int main (void)
                             sum += term;
                         }
                         pstr << "Difference between nonlinear and linear "
-                            "objective function is less than " << sum << "\n";
-                        pstr << "Linear objective function is "
-                            << lin_obj_func << "\n\n";
+                            "objective function is less than " << sum << "\n";*/
+                       // pstr << "Linear objective function is "
+                         pstr << "\nNonlinear objective function is "
+                            << nonlin_obj_func << "\n";
 
                     }
                 }
