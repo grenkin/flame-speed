@@ -1,11 +1,7 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_linalg.h>
-#include <iostream>
-#include <fstream>
-#include <vector>
 #include <cmath>
 #include <cstdlib>
-#include <conio.h>
 #include "input_data.h"
 #include "calc_u.h"
 
@@ -65,9 +61,12 @@ bool inside_the_interval (real_t x, Interval interval)
 int main (void)
 {
     std::cout << "Identification of reaction rate parameters in a combustion model\n\n";
-    //Read input data
+    // Read input data
     InputParam input_param = read_input_param();
     Config config = read_config();
+    // Read burnt temperature data
+    BurntTemperature burnt_temperature("burnt_temperature.txt");
+    // Read flame speed data
     std::ifstream fspeed("flame_speed.txt");
     if (!fspeed) {
         std::cerr << "Can not open input file: flame_speed.txt\n";
@@ -76,44 +75,12 @@ int main (void)
     }
     int data_size;
     fspeed >> data_size;
-    std::vector<real_t> phi_data(data_size), v_data(data_size),
-        Q_div_cp_data(data_size);
+    std::vector<ExperimentalData> experimental_data(data_size);
     for (int j = 0; j < data_size; ++j) {
-        fspeed >> phi_data[j] >> v_data[j];
-    }
-    int burnt_size;
-    std::ifstream fburnt("burnt_temperature.txt");
-    if (!fburnt) {
-        std::cerr << "Can not open input file: burnt_temperature.txt\n";
-        getch();
-        exit(1);
-    }
-    fburnt >> burnt_size;
-    std::vector<real_t> phi_burnt(burnt_size), temperature_burnt(burnt_size);
-    for (int k = 0; k < burnt_size; ++k)
-        fburnt >> phi_burnt[k] >> temperature_burnt[k];
-    real_t z_val = calc_z(input_param.data);
-    for (int j = 0; j < data_size; ++j) {
-        bool ok = false;
-        for (int k = 0; k < burnt_size - 1; ++k) {
-            if (phi_burnt[k] <= phi_data[j] && phi_data[j] <= phi_burnt[k+1]) {
-                // interpolate the temperature data
-                real_t Tb = temperature_burnt[k]
-                    + (temperature_burnt[k+1] - temperature_burnt[k])
-                    * (phi_data[j] - phi_burnt[k])
-                    / (phi_burnt[k+1] - phi_burnt[k]);
-                Q_div_cp_data[j] = (Tb - input_param.data.T0)
-                    * (phi_data[j] + z_val) / fmin(phi_data[j], 1);
-                ok = true;
-                break;
-            }
-        }
-        if (!ok) {
-            std::cerr << "Undefined adiabatic temperature: phi = "
-                << phi_data[j] << "\n";
-            getch();
-            exit(1);
-        }
+        real_t phi, v;
+        fspeed >> phi >> v;
+        experimental_data[j] = ExperimentalData(phi, v, burnt_temperature,
+            input_param.model_parameters);
     }
 
     std::ofstream flog("log.txt");
@@ -122,29 +89,19 @@ int main (void)
     PairStream pstr(flog);
 
     // deltas are steps for numerical differentiation
-    real_t delta_A = config.delta_A;
-    real_t delta_E_div_R = config.delta_E_div_R;
-    real_t delta_alpha = config.delta_alpha;
-    real_t delta_beta = config.delta_beta;
-    real_t delta_n = config.delta_n;
+    real_t **delta; // [ModelParametersToFind::PARAMS_NUM];
+    delta = config.delta;
 
-    // data contains data for current flame speed calculations
-    calc_u_Data data = input_param.data;
+    // data contains parameters to optimize
+    ModelParametersToFind& data = input_param.model_parameters_to_find;
 
-    // Define arrays of pointers for convenient access to 5 parameters
-    const int PARAMS_NUM = 5;
-    real_t *delta[PARAMS_NUM] =
-        {&delta_A, &delta_E_div_R, &delta_alpha, &delta_beta, &delta_n};
-    real_t *data_param[PARAMS_NUM] =
-        {&data.A, &data.E_div_R, &data.alpha, &data.beta, &data.n};
-    ParamRange *params_ranges[PARAMS_NUM] =
-        {&input_param.A, &input_param.E_div_R, &input_param.alpha,
-        &input_param.beta, &input_param.n};
-    std::string param_name[PARAMS_NUM] = {"A", "E/R", "alpha", "beta", "n"};
+    // Next, i = 1..m, j, k = 1..n where n = 5, m = data_size
     // signs of derivatives of u_i(x)
-    sign_t u_deriv_sign[PARAMS_NUM] = {PLUS, MINUS, MINUS, MINUS, PLUS};
+    sign_t u_deriv_sign[ModelParametersToFind::PARAMS_NUM] =
+        {PLUS, MINUS, MINUS, MINUS, PLUS};
     // signs of second derivatives of u_i(x)
-    sign_t u_deriv2_sign[PARAMS_NUM][PARAMS_NUM] =
+    sign_t u_deriv2_sign[ModelParametersToFind::PARAMS_NUM]
+        [ModelParametersToFind::PARAMS_NUM] =
         {
             {MINUS, MINUS, MINUS, MINUS, PLUS},
             {MINUS, PLUS, PLUS, PLUS, MINUS},
@@ -153,30 +110,18 @@ int main (void)
             {PLUS, MINUS, MINUS, MINUS, PLUS}
         };
 
-    // TODO: переписать с использованием массивов, выделить обращение к
-    // параметрам в отдельный класс
-    // Классы: Params - задание параметров и их свойств,
-    // RealArrayParams - массив вещественных чисел с индексами-параметрами
-
-    // sizes of parameters ranges
-    real_t r_A =
-        (input_param.A.right - input_param.A.left) / input_param.A.num;
-    real_t r_E_div_R =
-        (input_param.E_div_R.right - input_param.E_div_R.left)
-        / input_param.E_div_R.num;
-    real_t r_alpha =
-        (input_param.alpha.right - input_param.alpha.left)
-        / input_param.alpha.num;
-    real_t r_beta =
-        (input_param.beta.right - input_param.beta.left)
-        / input_param.beta.num;
-    real_t r_n =
-        (input_param.n.right - input_param.n.left)
-        / input_param.n.num;
-    // real_t range_sizes[PARAMS] = ...
+    // steps of parameters ranges
+    real_t range_step[ModelParametersToFind::PARAMS_NUM];
+    for (int p = 0; p < ModelParametersToFind::PARAMS_NUM; ++p) {
+        range_step[p] = (input_param.params_ranges[p].right
+            - input_param.params_ranges[p].left)
+            / input_param.params_ranges[p].num;
+    }
 
     std::ofstream fout("output.txt");
     fout.precision(10);
+
+    // TODO: Реализовать класс для перебора всех кортежей
 
     for (int i_A = 0; i_A < input_param.A.num; ++i_A) {
         for (int i_E_div_R = 0; i_E_div_R < input_param.E_div_R.num;
@@ -185,6 +130,8 @@ int main (void)
             for (int i_alpha = 0; i_alpha < input_param.alpha.num; ++i_alpha) {
                 for (int i_beta = 0; i_beta < input_param.beta.num; ++i_beta) {
                     for (int i_n = 0; i_n < input_param.n.num; ++i_n) {
+                        real_t ll[PARAMS_NUM], rr[PARAMS_NUM];
+                        for (int flag = 0; flag <= 1; ++flag) {
                        /* Interval interval_A(
                             input_param.A.left + r_A * i_A,
                             input_param.A.left + r_A * (i_A + 1));
@@ -393,15 +340,20 @@ int main (void)
                                 b[i] -= a[i][j] * x_left[j];
                         }*/
 
+                        real_t eps0 = 0.0;
                         for (int i = 0; i < data_size; ++i) {
                             for (int j = 0; j < PARAMS_NUM; ++j)
                                 //a[i][j] = (max_ui[i] - min_ui[i]) / (x_right[j] - x_left[j]);
-                               // a[i][j] = max_dui_dxk[i][j];  // так лучше?
-                                a[i][j] = min_dui_dxk[i][j];
+                              if (!flag)
+                                //a[i][j] = min_dui_dxk[i][j];  // так лучше?
+                                a[i][j] = (max_dui_dxk[i][j] + min_dui_dxk[i][j]) / 2;
+                              else
+                                 a[i][j] = max_dui_dxk[i][j];
+                              //  a[i][j] = min_dui_dxk[i][j];
                                 // a[i][j] = (min_dui_dxk[i][j] + max_dui_dxk[i][j]) / 2;
                             // вычисляем b[i] в точке x_left,
                             //    в которой u = min_ui[i]
-                            b[i] = min_ui[i];
+                            b[i] = min_ui[i] + eps0;
                             for (int j = 0; j < PARAMS_NUM; ++j)
                                 b[i] -= a[i][j] * x_left[j];
                         }
@@ -533,7 +485,7 @@ int main (void)
                         // вычисляем b[i] в точке x_right,
                         //    в которой u = max_ui[i]
                         for (int i = 0; i < data_size; ++i) {
-                            b[i] = max_ui[i];
+                            b[i] = max_ui[i] - eps0;
                             for (int j = 0; j < PARAMS_NUM; ++j)
                                 b[i] -= a[i][j] * x_right[j];
                         }
@@ -553,7 +505,17 @@ int main (void)
                         for (int k = 0; k < PARAMS_NUM; ++k) {
                             l[k] = lin_sol[k];
                             r[k] = lin_sol2[k];
+
+                            if (!flag) {
+                                ll[k] = l[k];
+                                rr[k] = r[k];
+                            }
+                            else {
+                                ll[k] = fmin(fmin(ll[k], l[k]), r[k]);
+                                rr[k] = fmax(fmax(rr[k], r[k]), l[k]);
+                            }
                         }
+
 
                         /*
                         // deviations_rhs[k]
@@ -607,7 +569,7 @@ int main (void)
                             lin_obj_func += 0.5 * pow(term, 2);
                         }
                        */ // calculate nonlinear objective function
-                        real_t nonlin_obj_func = 0.0;
+                        real_t nonlin_obj_func = 0.0, nonlin_obj_func2 = 0.0;
                         for (int i = 0; i < data_size; ++i) {
                             data.phi = phi_data[i];
                             data.Q_div_cp = Q_div_cp_data[i];
@@ -615,9 +577,28 @@ int main (void)
                                 *data_param[p] = lin_sol[p]
                                     * sign(u_deriv_sign[p]);
                             }
-                            real_t u = calc_u(data, config);
+                            real_t u;
+                            try {
+                                u = calc_u(data, config);
+                            }
+                            catch (umax_achieved) {
+                                u = config.max_u;
+                            }
                             real_t term = u - v_data[i];
                             nonlin_obj_func += 0.5 * pow(term, 2);
+
+                            for (int p = 0; p < PARAMS_NUM; ++p) {
+                                *data_param[p] = lin_sol2[p]
+                                    * sign(u_deriv_sign[p]);
+                            }
+                            try {
+                                u = calc_u(data, config);
+                            }
+                            catch (umax_achieved) {
+                                u = config.max_u;
+                            }
+                            term = u - v_data[i];
+                            nonlin_obj_func2 += 0.5 * pow(term, 2);
                         }
 
                         gsl_vector_free(x_vec);
@@ -657,34 +638,7 @@ int main (void)
                             pstr << r[k] << " ";
                         pstr << "\n\n";
 
-                        // create intervals [l, r]
-                        Interval S_eps[PARAMS_NUM];
-                        for (int k = 0; k < PARAMS_NUM; ++k) {
-                            if (u_deriv_sign[k] == PLUS) {
-                                S_eps[k].left = l[k];
-                                S_eps[k].right = r[k];
-                            }
-                            else {
-                                S_eps[k].right = -l[k];
-                                S_eps[k].left = -r[k];
-                            }
-                        }
-                        // intersect [l, r] with [x_left, x_right]
-                        Interval sol[PARAMS_NUM];
-                        bool empty_sol = false;
-                        for (int k = 0; k < PARAMS_NUM; ++k) {
-                            sol[k] = intersect_intervals(
-                                S_eps[k], intervals[k]);
-                            empty_sol = empty_sol || sol[k].empty;
-                        }
-                        pstr << "S_eps :\n";
-                        for (int k = 0; k < PARAMS_NUM; ++k) {
-                            pstr << param_name[k] << "_left = "
-                                << S_eps[k].left << "\n"
-                                << param_name[k] << "_right = "
-                                << S_eps[k].right << "\n";
-                        }
-                        pstr << "\n";
+
 
                        /* for (int j = 0; j < PARAMS_NUM; ++j) {
                             pstr << "lin_sol[" << param_name[j] << "] = "
@@ -706,31 +660,13 @@ int main (void)
                                     lin_sol[j] * sign(u_deriv_sign[j]),
                                         intervals[j]);
                         }
-                        if (!inside_the_range)
+                     /*   if (!inside_the_range)
                             pstr << "The solution of linear problem is not "
                                 "inside the range.\n\n";
-
-                        // output intersection
-                        if (!empty_sol) {
-                            pstr << "Intersection:\n";
-                            if (!inside_the_range)
-                                fout << "not inside the range\n";
-                            for (int k = 0; k < PARAMS_NUM; ++k) {
-                                //fout
-                                pstr << param_name[k] << "_left = "
-                                    << sol[k].left << "\n "
-                                    << param_name[k] << "_right = "
-                                    << sol[k].right << "\n";
-                               /* pstr << param_name[k] << " = "
-                                    << sol[k].left << " .. "
-                                    << sol[k].right << "\n"; */
-                            }
-                            fout << "\n";
-                            pstr << "\n";
                         }
                         else {
                             pstr << "Empty intersection\n\n";
-                        }
+                        } */
 
                     /*    // calculate objective function
                         real_t sum = 0;
@@ -748,7 +684,55 @@ int main (void)
                        // pstr << "Linear objective function is "
                          pstr << "\nNonlinear objective function is "
                             << nonlin_obj_func << "\n";
+                         pstr << "\nNonlinear objective function 2 is "
+                            << nonlin_obj_func2 << "\n";
 
+                    } // flag
+
+                        // create intervals [l, r]
+                        Interval S_eps[PARAMS_NUM];
+                        for (int k = 0; k < PARAMS_NUM; ++k) {
+                            if (u_deriv_sign[k] == PLUS) {
+                                S_eps[k].left = ll[k];
+                                S_eps[k].right = rr[k];
+                            }
+                            else {
+                                S_eps[k].right = -ll[k];
+                                S_eps[k].left = -rr[k];
+                            }
+                        }
+                        // intersect [l, r] with [x_left, x_right]
+                      /*  Interval sol[PARAMS_NUM];
+                        bool empty_sol = false;
+                        for (int k = 0; k < PARAMS_NUM; ++k) {
+                            sol[k] = intersect_intervals(
+                                S_eps[k], intervals[k]);
+                            empty_sol = empty_sol || sol[k].empty;
+                        } */
+                        pstr << "S_eps :\n";
+                        for (int k = 0; k < PARAMS_NUM; ++k) {
+                            pstr << param_name[k] << "_left = "
+                                << S_eps[k].left << "\n"
+                                << param_name[k] << "_right = "
+                                << S_eps[k].right << "\n";
+                        }
+                        pstr << "\n";
+
+                        // output intersection
+                     /*   if (!empty_sol) {
+                            pstr << "Intersection:\n";
+                            if (!inside_the_range)
+                                fout << "not inside the range\n";
+                            for (int k = 0; k < PARAMS_NUM; ++k) {
+                                //fout
+                                pstr << param_name[k] << "_left = "
+                                    << sol[k].left << "\n "
+                                    << param_name[k] << "_right = "
+                                    << sol[k].right << "\n";
+                            }
+                            fout << "\n";
+                            pstr << "\n";
+                        }*/
                     }
                 }
             }

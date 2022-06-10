@@ -12,49 +12,64 @@ std::string temperature_str (const temperature_t t)
         return "UP";
 }
 
-real_t calc_z(const calc_u_Data &data)
+inline real_t calc_Tb (const ModelParameters& model_parameters,
+    const ModelParametersToFind& model_parameters_to_find,
+    const ExperimentalData& experimental_data)
 {
-    return data.nu * (1 + 3.762 * 28. / 32.);
+    const real_t z = calc_z(model_parameters);
+    return model_parameters.T0
+        + experimental_data.Q_div_cp
+        * fmin(experimental_data.phi, 1) / (experimental_data.phi + z);
 }
 
-inline real_t calc_Tb(const calc_u_Data& data)
+real_t U (const ModelParameters& model_parameters,
+    const ModelParametersToFind& data,
+    const ExperimentalData& experimental_data, real_t T)
 {
-    const real_t z = calc_z(data);
-    return data.T0 + data.Q_div_cp * fmin(data.phi, 1) / (data.phi + z);
+    const real_t z = calc_z(model_parameters);
+    return experimental_data.Q_div_cp * model_parameters.D * data.A * pow(T, data.n)
+        * pow(experimental_data.phi / (experimental_data.phi + z)
+            - (T - model_parameters.T0) / experimental_data.Q_div_cp, data.alpha)
+        * pow(model_parameters.nu / (experimental_data.phi + z)
+            - model_parameters.nu * (T - model_parameters.T0)
+            / experimental_data.Q_div_cp, data.beta)
+        * (exp(- data.E_div_R / T) - exp(- data.E_div_R / model_parameters.T0));
 }
 
-real_t U(const calc_u_Data &data, const real_t T)
+temperature_t calc_temperature (real_t u,
+    const ModelParameters& model_parameters,
+    const ModelParametersToFind& model_parameters_to_find,
+    const ExperimentalData& experimental_data, int N_trapezoid)
 {
-    const real_t z = calc_z(data);
-    return data.Q_div_cp * data.D * data.A * pow(T, data.n)
-        * pow(data.phi / (data.phi + z) - (T - data.T0) / data.Q_div_cp, data.alpha)
-        * pow(data.nu / (data.phi + z) - data.nu * (T - data.T0) / data.Q_div_cp, data.beta)
-        * (exp(- data.E_div_R / T) - exp(- data.E_div_R / data.T0));
-}
-
-temperature_t calc_temperature(const real_t u, const calc_u_Data &data, const int N_trapezoid)
-{
-    real_t Tb = calc_Tb(data);
-    real_t h = (Tb - data.T0) / N_trapezoid;
+    real_t Tb = calc_Tb(model_parameters, model_parameters_to_find,
+        experimental_data);
+    real_t h = (Tb - model_parameters.T0) / N_trapezoid;
     long double p = 0;
     for (int i = 0; i < N_trapezoid; ++i) {
-        real_t Ti = data.T0 + h * i;
+        real_t Ti = model_parameters.T0 + h * i;
         real_t Ti1 = Ti + h;
-        real_t D = u * u + 4 / h * (p * p / h + u * p - U(data, Ti) - U(data, Ti1));
-        if (D < 0)
+        real_t Discr =
+            u * u + 4 / h * (p * p / h + u * p
+            - U(model_parameters, model_parameters_to_find, experimental_data, Ti)
+            - U(model_parameters, model_parameters_to_find, experimental_data, Ti1));
+        if (Discr < 0)
             return DOWN;
-        p = h / 2 * (u + sqrt(D));
+        p = h / 2 * (u + sqrt(Discr));
     }
     return UP;
 }
 
-real_t calc_u (const calc_u_Data &data, const Config &config)
+real_t calc_u (const ModelParameters& model_parameters,
+    const ModelParametersToFind& model_parameters_to_find,
+    const ExperimentalData& experimental_data, const Config& config)
 {
     real_t u = config.u_init / 2;
     temperature_t temperature_res = DOWN;
     while (u <= config.max_u && temperature_res == DOWN) {
         u *= 2;
-        temperature_res = calc_temperature(u, data, config.N_trapezoid);
+        temperature_res = calc_temperature(u,
+            model_parameters, model_parameters_to_find, experimental_data,
+            config.N_trapezoid);
     }
     if (u > config.max_u)
         throw umax_achieved();
@@ -62,7 +77,8 @@ real_t calc_u (const calc_u_Data &data, const Config &config)
     long double right = u;
     while (right - left > config.u_eps) {
         u = (left + right) / 2;
-        temperature_res = calc_temperature(u, data, config.N_trapezoid);
+        temperature_res = calc_temperature(u, model_parameters,
+            model_parameters_to_find, experimental_data, config.N_trapezoid);
         if (temperature_res == UP)
             right = u;
         else if (temperature_res == DOWN)

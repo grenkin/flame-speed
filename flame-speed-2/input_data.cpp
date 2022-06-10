@@ -114,14 +114,14 @@ InputParam read_input_param ()
         }
 
         InputParam input_param;
-        get_positive_double_param(vm, "T0", input_param.data.T0);
-        get_positive_double_param(vm, "D", input_param.data.D);
-        get_positive_double_param(vm, "nu", input_param.data.nu);
-        get_positive_range(vm, "A", input_param.A);
-        get_positive_range(vm, "E/R", input_param.E_div_R);
-        get_range(vm, "alpha", input_param.alpha);
-        get_range(vm, "beta", input_param.beta);
-        get_range(vm, "n", input_param.n);
+        get_positive_double_param(vm, "T0", input_param.model_parameters.T0);
+        get_positive_double_param(vm, "D", input_param.model_parameters.D);
+        get_positive_double_param(vm, "nu", input_param.model_parameters.nu);
+        get_positive_range(vm, "A", input_param.model_parameters_to_find.A);
+        get_positive_range(vm, "E/R", input_param.model_parameters_to_find.E_div_R);
+        get_range(vm, "alpha", input_param.model_parameters_to_find.alpha);
+        get_range(vm, "beta", input_param.model_parameters_to_find.beta);
+        get_range(vm, "n", input_param.model_parameters_to_find.n);
         return input_param;
     }
     catch (ParamIsNotSet e) {

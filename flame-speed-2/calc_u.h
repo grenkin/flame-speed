@@ -3,8 +3,8 @@
 
 #include "input_data.h"
 
-real_t calc_u(const calc_u_Data&, const Config&);
-real_t calc_z(const calc_u_Data&);
+real_t calc_u(const ModelParameters&, const ModelParametersToFind&,
+    const ExperimentalData&, const Config&);
 
 class umax_achieved {};
 
