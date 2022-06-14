@@ -47,7 +47,9 @@ struct Interval {
 
 Interval intersect_intervals (Interval a, Interval b)
 {
-    if (a.left > b.right || b.left > a.right) {
+    if (a.empty || b.empty || a.left > b.right - 1e-12
+        || b.left > a.right - 1e-12)
+    {
         Interval ans;
         ans.empty = true;
         return ans;
@@ -71,7 +73,8 @@ std::vector<Interval> solve_interval_linear_system (
 {
     std::vector<Interval> sol(n);
     bool start = true;  // start of the enumeration
-    Enumeration e_a(n);
+    // Enumeration e_a(n);
+    Enumeration e_a(1);
     real_t A[m][n];
     gsl_matrix *mat = gsl_matrix_alloc(n, n);
     gsl_vector *vec = gsl_vector_alloc(n);
@@ -80,7 +83,8 @@ std::vector<Interval> solve_interval_linear_system (
         // int counter = 0;
         // fill matrix of a linear system
         for (int j = 0; j < n; j++) {
-            if (e_a.v[j] == 0) {
+            //if (e_a.v[j] == 0) {
+            if (e_a.v[0] == 0) {
                 for (int i = 0; i < m; i++)
                     A[i][j] = a[i][j].left;
             }
@@ -163,7 +167,7 @@ std::vector<Interval> solve_interval_linear_system (
 }
 
 std::vector<Interval> process_params_intervals (
-    const Interval intervals[PARAMS_NUM],
+    const std::vector<Interval>& intervals,
     const ModelParameters& model_parameters,
     const std::vector<ExperimentalData>& experimental_data,
     const Config& config,
@@ -225,6 +229,7 @@ std::vector<Interval> process_params_intervals (
     // maximal and minimal derivatives of the flame speed
     real_t max_dui_dxk[data_size][PARAMS_NUM],
         min_dui_dxk[data_size][PARAMS_NUM];
+    std::vector<real_t> eps1(data_size);
     for (int i = 0; i < data_size; ++i) {
         // calculate minimal and maximal flame speed
         for (int p = 0; p < PARAMS_NUM; ++p)
@@ -285,6 +290,12 @@ std::vector<Interval> process_params_intervals (
             sum += (max_dui_dxk[i][k] - min_dui_dxk[i][k])
                 * (x_right[k] - x_left[k]);
         }
+
+        // calculate eps1 = (max du/dA - min du/dA) * (A_right - A_left)
+        eps1[i] = (max_dui_dxk[i][0] - min_dui_dxk[i][0])
+            * (x_right[0] - x_left[0]);
+        out << "eps1 = " << eps1[i] << "; ";
+
         out << "grad u_i * (x_right - x_left) = " << sum << " ; "
             << "u_max - u_min = " << max_ui[i] - min_ui[i];
         if (sum < max_ui[i] - min_ui[i])
@@ -302,8 +313,8 @@ std::vector<Interval> process_params_intervals (
     for (int i = 0; i < data_size; ++i) {
         for (int j = 0; j < PARAMS_NUM; ++j) {
             a[i][j] = Interval(min_dui_dxk[i][j], max_dui_dxk[i][j]);
-            b[i] = Interval(min_ui[i] - experimental_data[i].v,
-                max_ui[i] - experimental_data[i].v);
+            b[i] = Interval(min_ui[i] - experimental_data[i].v - eps1[i],
+                max_ui[i] - experimental_data[i].v + eps1[i]);
         }
     }
 
@@ -313,7 +324,7 @@ std::vector<Interval> process_params_intervals (
     // calculate [x_right + y_min, x_left + y_max]
     for (int k = 0; k < PARAMS_NUM; ++k) {
         real_t l = x_right[k] + y[k].left, r = x_left[k] + y[k].right;
-        if (l > r)
+        if (l >= r - 1e-12)
             new_intervals[k].empty = true;
         else {
             if (u_deriv_sign[k] == PLUS)
@@ -321,6 +332,7 @@ std::vector<Interval> process_params_intervals (
             else
                 new_intervals[k] = Interval(-r, -l);
         }
+        new_intervals[k] = intersect_intervals(new_intervals[k], intervals[k]);
     }
 
     return new_intervals;
@@ -380,6 +392,10 @@ int main (void)
 
     std::ofstream fout("output.txt");
     fout.precision(10);
+    std::ofstream fout1("output1.txt");
+    fout1.precision(10);
+    std::ofstream fout2("output2.txt");
+    fout2.precision(10);
 
     // set bounds for enumeration
     std::vector<int> bounds(PARAMS_NUM);
@@ -389,7 +405,7 @@ int main (void)
     Enumeration enumeration(bounds);
     while (!enumeration.end) {
         // enumerate (i0, i1, i2, i3, i4): 0 <= ip < params_ranges[p].num
-        Interval intervals[PARAMS_NUM];  // intervals of parameters values
+        std::vector<Interval> intervals(PARAMS_NUM);  // intervals of parameters values
         for (int p = 0; p < PARAMS_NUM; ++p) {
             int i_p = enumeration.v[p];
             intervals[p] = Interval(input_param.params_ranges[p].left
@@ -404,23 +420,54 @@ int main (void)
             u_deriv_sign, u_deriv2_sign, pstr);
 
         pstr << "New intervals:\n";
+        bool empty = false;
         for (int p = 0; p < PARAMS_NUM; ++p) {
             pstr << PARAMS_NAMES[p] << " = ";
-            if (new_intervals[p].empty)
+            fout << PARAMS_NAMES[p] << " = ";
+            if (new_intervals[p].empty) {
+                empty = true;
+                fout << "empty\n";
                 pstr << "empty\n";
-            else
+            }
+            else {
                 pstr << new_intervals[p].left << " .. "
                     << new_intervals[p].right << "\n";
-
-            fout << PARAMS_NAMES[p] << " = ";
-            if (new_intervals[p].empty)
-                fout << "empty\n";
-            else
                 fout << new_intervals[p].left << " .. "
                     << new_intervals[p].right << "\n";
+            }
         }
         pstr << "\n";
         fout << "\n";
+        if (!empty) {
+            for (int p = 0; p < PARAMS_NUM; ++p) {
+                fout1 << PARAMS_NAMES[p] << " = "
+                    << new_intervals[p].left << " .. "
+                    << new_intervals[p].right << "\n";
+            }
+            fout1 << "\n";
+
+            // check the interval
+            pstr << "Check the interval\n";
+            std::vector<Interval> new_intervals2 = process_params_intervals(
+                new_intervals, input_param.model_parameters, experimental_data,
+                config, u_deriv_sign, u_deriv2_sign, pstr);
+            empty = false;
+            for (int p = 0; p < PARAMS_NUM; ++p) {
+                if (new_intervals2[p].empty)
+                    empty = true;
+            }
+            if (empty) {
+                pstr << "The interval is empty.\n\n";
+            }
+            else {
+                for (int p = 0; p < PARAMS_NUM; ++p) {
+                    fout2 << PARAMS_NAMES[p] << " = "
+                        << new_intervals2[p].left << " .. "
+                        << new_intervals2[p].right << "\n";
+                }
+                fout2 << "\n";
+            }
+        }
 
         enumeration.next();
     }
