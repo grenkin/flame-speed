@@ -62,7 +62,80 @@ bool inside_the_interval (real_t x, Interval interval)
     return x >= interval.left && x <= interval.right;
 }
 
-std::vector<Interval> process_params_intervals(
+// Solve A^T (Ay + b) = 0 with interval A and b
+// A is m*n-matrix, b is m-vector
+// The result is n-vector
+std::vector<Interval> solve_interval_linear_system (
+    int m, int n, const std::vector<std::vector<Interval>>& a,
+    const std::vector<Interval>& b)
+{
+    std::vector<Interval> sol(n, Interval(0.0, 0.0));
+    Enumeration e_a(n * (n + 1) / 2);
+    // real_t A[n][n];
+    gsl_matrix *mat = gsl_matrix_alloc(n, n);
+    gsl_vector *vec = gsl_vector_alloc(n);
+    gsl_vector *y_vec = gsl_vector_alloc(n);
+    while (!e_a.end) {
+        int counter = 0;
+        // fill matrix of a linear system
+        for (int j = 0; j < n; j++) {
+            for (int k = j; k < n; k++) {
+                real_t sum = 0;
+                if (e_a.v[counter] == 0) {
+                    for (int i = 0; i < m; i++)
+                        sum += a[i][j].left * a[i][k].left;
+                }
+                else if (e_a.v[counter] == 1) {
+                    for (int i = 0; i < m; i++)
+                        sum += a[i][j].right * a[i][k].right;
+                }
+                counter++;
+                // A[j][k] = A[k][j] = sum;
+                gsl_matrix_set(mat, j, k, sum);
+                gsl_matrix_set(mat, k, j, sum);
+            }
+        }
+        // find Cholesky decomposition of the matrix
+        gsl_linalg_cholesky_decomp(mat);
+
+        Enumeration e_b(n);
+        while (!e_b.end) {
+            // fill right-hand side of the linear system
+            for (int k = 0; k < n; k++) {
+                real_t sum = 0;
+                for (int i = 0; i < m; i++) {
+                    real_t b_val;
+                    if (e_b.v[k] == 0)
+                        b_val = b[i].left;
+                    else if (e_b.v[k] == 1)
+                        b_val = b[i].right;
+                    sum -= (a[i][k].left + a[i][k].right) / 2 * b_val;
+                }
+                gsl_vector_set(vec, k, sum);
+            }
+
+            // solve the linear system
+            gsl_linalg_cholesky_solve(mat, vec, y_vec);
+            for (int k = 0; k < n; k++) {
+                real_t y_k = gsl_vector_get(y_vec, k);
+                sol[k].left = fmin(sol[k].left, y_k);
+                sol[k].right = fmax(sol[k].right, y_k);
+                std::cout << y_k << "   ";
+            }
+            std::cout << "\n";
+
+            e_b.next();
+        }
+        e_a.next();
+    }
+
+    /*for (int j = 0; j < n; ++j)
+        sol[j] = Interval(0, 0);*/
+
+    return sol;
+}
+
+std::vector<Interval> process_params_intervals (
     const Interval intervals[PARAMS_NUM],
     const ModelParameters& model_parameters,
     const std::vector<ExperimentalData>& experimental_data,
@@ -194,6 +267,35 @@ std::vector<Interval> process_params_intervals(
     }
     out << "\n";
 
+    // an interval matrix and an interval vector
+    std::vector<std::vector<Interval>>
+        a(data_size, std::vector<Interval>(PARAMS_NUM));
+    std::vector<Interval> b(data_size);
+    // calculate a and b
+    for (int i = 0; i < data_size; ++i) {
+        for (int j = 0; j < PARAMS_NUM; ++j) {
+            a[i][j] = Interval(min_dui_dxk[i][j], max_dui_dxk[i][j]);
+            b[i] = Interval(min_ui[i] - experimental_data[i].v,
+                max_ui[i] - experimental_data[i].v);
+        }
+    }
+
+    // Solve A^T (Ay + b) = 0
+    std::vector<Interval> y = solve_interval_linear_system(
+        data_size, PARAMS_NUM, a, b);
+    // calculate [x_right + y_min, x_left + y_max]
+    for (int k = 0; k < PARAMS_NUM; ++k) {
+        real_t l = x_right[k] + y[k].left, r = x_left[k] + y[k].right;
+        if (l > r)
+            new_intervals[k].empty = true;
+        else {
+            if (u_deriv_sign[k] == PLUS)
+                new_intervals[k] = Interval(l, r);
+            else
+                new_intervals[k] = Interval(-r, -l);
+        }
+    }
+
     return new_intervals;
 }
 
@@ -273,6 +375,17 @@ int main (void)
         std::vector<Interval> new_intervals = process_params_intervals(
             intervals, input_param.model_parameters, experimental_data, config,
             u_deriv_sign, u_deriv2_sign, pstr);
+
+        pstr << "New intervals:\n";
+        for (int p = 0; p < PARAMS_NUM; ++p) {
+            pstr << PARAMS_NAMES[p] << " = ";
+            if (new_intervals[p].empty)
+                pstr << "empty\n";
+            else
+                pstr << new_intervals[p].left << " .. "
+                    << new_intervals[p].right << "\n";
+        }
+        pstr << "\n";
 
         enumeration.next();
     }
