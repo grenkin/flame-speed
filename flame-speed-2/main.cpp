@@ -69,7 +69,8 @@ std::vector<Interval> solve_interval_linear_system (
     int m, int n, const std::vector<std::vector<Interval>>& a,
     const std::vector<Interval>& b)
 {
-    std::vector<Interval> sol(n, Interval(0.0, 0.0));
+    std::vector<Interval> sol(n);
+    bool start = true;  // start of the enumeration
     Enumeration e_a(n);
     real_t A[m][n];
     gsl_matrix *mat = gsl_matrix_alloc(n, n);
@@ -116,16 +117,18 @@ std::vector<Interval> solve_interval_linear_system (
         // find Cholesky decomposition of the matrix
         gsl_linalg_cholesky_decomp(mat);
 
-        Enumeration e_b(n);
+        Enumeration e_b(1); //e_b(n);
         while (!e_b.end) {
             // fill right-hand side of the linear system
             for (int k = 0; k < n; k++) {
                 real_t sum = 0;
                 for (int i = 0; i < m; i++) {
                     real_t b_val;
-                    if (e_b.v[k] == 0)
+                   // if (e_b.v[k] == 0)
+                    if (e_b.v[0] == 0)
                         b_val = b[i].left;
-                    else if (e_b.v[k] == 1)
+                    //else if (e_b.v[k] == 1)
+                    else
                         b_val = b[i].right;
                     sum -= A[i][k] * b_val;
                 }
@@ -136,8 +139,14 @@ std::vector<Interval> solve_interval_linear_system (
             gsl_linalg_cholesky_solve(mat, vec, y_vec);
             for (int k = 0; k < n; k++) {
                 real_t y_k = gsl_vector_get(y_vec, k);
-                sol[k].left = fmin(sol[k].left, y_k);
-                sol[k].right = fmax(sol[k].right, y_k);
+                if (start) {
+                    sol[k].left = sol[k].right = y_k;
+                    start = false;
+                }
+                else {
+                    sol[k].left = fmin(sol[k].left, y_k);
+                    sol[k].right = fmax(sol[k].right, y_k);
+                }
                 // std::cout << y_k << "   ";
             }
             // std::cout << "\n";
