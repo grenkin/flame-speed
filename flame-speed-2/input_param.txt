@@ -1,0 +1,20 @@
+T0 = 298
+D = 2.5e-005
+nu = 4
+
+A_left = 3081995314.3
+A_right = 3165301125
+E/R_left = 32249.29344
+E/R_right = 32329.58435
+alpha_left = 0.290683094
+alpha_right = 0.305462861
+beta_left = 0.7684503503
+beta_right = 0.800368699
+n_left = 0.4376347749
+n_right = 0.592416678
+
+A_num = 1
+E/R_num = 1 
+alpha_num = 1
+beta_num = 1
+n_num = 1

@@ -70,16 +70,34 @@ std::vector<Interval> solve_interval_linear_system (
     const std::vector<Interval>& b)
 {
     std::vector<Interval> sol(n, Interval(0.0, 0.0));
-    Enumeration e_a(n * (n + 1) / 2);
-    // real_t A[n][n];
+    Enumeration e_a(n);
+    real_t A[m][n];
     gsl_matrix *mat = gsl_matrix_alloc(n, n);
     gsl_vector *vec = gsl_vector_alloc(n);
     gsl_vector *y_vec = gsl_vector_alloc(n);
     while (!e_a.end) {
-        int counter = 0;
+        // int counter = 0;
         // fill matrix of a linear system
         for (int j = 0; j < n; j++) {
+            if (e_a.v[j] == 0) {
+                for (int i = 0; i < m; i++)
+                    A[i][j] = a[i][j].left;
+            }
+            else {
+                for (int i = 0; i < m; i++)
+                    A[i][j] = a[i][j].right;
+            }
+        }
+        for (int j = 0; j < n; j++) {
             for (int k = j; k < n; k++) {
+                real_t sum = 0;
+                for (int i = 0; i < m; i++)
+                    sum += A[i][j] * A[i][k];
+                gsl_matrix_set(mat, j, k, sum);
+                gsl_matrix_set(mat, k, j, sum);
+            }
+        }
+           /* for (int k = j; k < n; k++) {
                 real_t sum = 0;
                 if (e_a.v[counter] == 0) {
                     for (int i = 0; i < m; i++)
@@ -94,7 +112,7 @@ std::vector<Interval> solve_interval_linear_system (
                 gsl_matrix_set(mat, j, k, sum);
                 gsl_matrix_set(mat, k, j, sum);
             }
-        }
+        } */
         // find Cholesky decomposition of the matrix
         gsl_linalg_cholesky_decomp(mat);
 
@@ -109,7 +127,7 @@ std::vector<Interval> solve_interval_linear_system (
                         b_val = b[i].left;
                     else if (e_b.v[k] == 1)
                         b_val = b[i].right;
-                    sum -= (a[i][k].left + a[i][k].right) / 2 * b_val;
+                    sum -= A[i][k] * b_val;
                 }
                 gsl_vector_set(vec, k, sum);
             }
@@ -120,9 +138,9 @@ std::vector<Interval> solve_interval_linear_system (
                 real_t y_k = gsl_vector_get(y_vec, k);
                 sol[k].left = fmin(sol[k].left, y_k);
                 sol[k].right = fmax(sol[k].right, y_k);
-                std::cout << y_k << "   ";
+                // std::cout << y_k << "   ";
             }
-            std::cout << "\n";
+            // std::cout << "\n";
 
             e_b.next();
         }
