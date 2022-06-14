@@ -411,8 +411,16 @@ int main (void)
             else
                 pstr << new_intervals[p].left << " .. "
                     << new_intervals[p].right << "\n";
+
+            fout << PARAMS_NAMES[p] << " = ";
+            if (new_intervals[p].empty)
+                fout << "empty\n";
+            else
+                fout << new_intervals[p].left << " .. "
+                    << new_intervals[p].right << "\n";
         }
         pstr << "\n";
+        fout << "\n";
 
         enumeration.next();
     }

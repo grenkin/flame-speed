@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <conio.h>
 #include <boost/program_options.hpp>
 #include "input_data.h"
@@ -53,23 +54,30 @@ void get_int_param (const po::variables_map &vm, const char *param, int &val)
 void get_range (const po::variables_map &vm, const char *param,
     ParamRange &range)
 {
+    std::string s = vm[param].as<std::string>();
+    std::istringstream iss(s);
+    std::string str;
+    iss >> range.left >> str >> range.right;
+    if (str != "..")
+        throw "Incorrect range";
+
+   /*
     std::string param_name = std::string(param) + "_left";
     get_double_param(vm, param_name.c_str(), range.left);
     param_name = std::string(param) + "_right";
     get_double_param(vm, param_name.c_str(), range.right);
-    param_name = std::string(param) + "_num";
+    */
+
+    std::string param_name = std::string(param) + "_num";
     get_int_param(vm, param_name.c_str(), range.num);
 }
 
 void get_positive_range (const po::variables_map &vm, const char *param,
     ParamRange &range)
 {
-    std::string param_name = std::string(param) + "_left";
-    get_positive_double_param(vm, param_name.c_str(), range.left);
-    param_name = std::string(param) + "_right";
-    get_positive_double_param(vm, param_name.c_str(), range.right);
-    param_name = std::string(param) + "_num";
-    get_int_param(vm, param_name.c_str(), range.num);
+    get_range(vm, param, range);
+    if (range.left < 0 || range.right < 0)
+        throw ParamIsNotPositive(param);
 }
 
 void print_error (const std::string msg)
@@ -92,20 +100,15 @@ InputParam read_input_param ()
             ("T0", po::value<double>(), "T0")
             ("D", po::value<double>(), "D")
             ("nu", po::value<double>(), "nu")
-            ("A_left", po::value<double>(), "A_left")
-            ("A_right", po::value<double>(), "A_right")
+            ("A", po::value<std::string>(), "A")
             ("A_num", po::value<int>(), "A_num")
-            ("E/R_left", po::value<double>(), "E/R_left")
-            ("E/R_right", po::value<double>(), "E/R_right")
+            ("E/R", po::value<std::string>(), "E/R")
             ("E/R_num", po::value<int>(), "E/R_num")
-            ("alpha_left", po::value<double>(), "alpha_left")
-            ("alpha_right", po::value<double>(), "alpha_right")
+            ("alpha", po::value<std::string>(), "alpha")
             ("alpha_num", po::value<int>(), "alpha_num")
-            ("beta_left", po::value<double>(), "beta_left")
-            ("beta_right", po::value<double>(), "beta_right")
+            ("beta", po::value<std::string>(), "beta")
             ("beta_num", po::value<int>(), "beta_num")
-            ("n_left", po::value<double>(), "n_left")
-            ("n_right", po::value<double>(), "n_right")
+            ("n", po::value<std::string>(), "n")
             ("n_num", po::value<int>(), "n_num")
         ;
 
