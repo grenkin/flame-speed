@@ -79,6 +79,11 @@ void print_error (const std::string msg)
     exit(1);
 }
 
+real_t calc_z (const ModelParameters& model_parameters)
+{
+    return model_parameters.nu * (1 + 3.762 * 28. / 32.);
+}
+
 InputParam read_input_param ()
 {
     try {
@@ -117,11 +122,11 @@ InputParam read_input_param ()
         get_positive_double_param(vm, "T0", input_param.model_parameters.T0);
         get_positive_double_param(vm, "D", input_param.model_parameters.D);
         get_positive_double_param(vm, "nu", input_param.model_parameters.nu);
-        get_positive_range(vm, "A", input_param.model_parameters_to_find.A);
-        get_positive_range(vm, "E/R", input_param.model_parameters_to_find.E_div_R);
-        get_range(vm, "alpha", input_param.model_parameters_to_find.alpha);
-        get_range(vm, "beta", input_param.model_parameters_to_find.beta);
-        get_range(vm, "n", input_param.model_parameters_to_find.n);
+        get_positive_range(vm, "A", input_param.params_ranges[0]);
+        get_positive_range(vm, "E/R", input_param.params_ranges[1]);
+        get_range(vm, "alpha", input_param.params_ranges[2]);
+        get_range(vm, "beta", input_param.params_ranges[3]);
+        get_range(vm, "n", input_param.params_ranges[4]);
         return input_param;
     }
     catch (ParamIsNotSet e) {

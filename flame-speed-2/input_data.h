@@ -12,13 +12,18 @@ struct ModelParameters {
     real_t T0, D, nu;
 };
 
+const int PARAMS_NUM = 5;
+const std::string PARAMS_NAMES[5] = {
+    "A", "E/R", "alpha", "beta", "n"};
+
 struct ModelParametersToFind {
     real_t A, E_div_R, alpha, beta, n;
+    real_t* params[PARAMS_NUM];
 
-    static const int PARAMS_NUM = 5;
-    const char* PARAMS_NAMES[PARAMS_NUM] = {
-        "A", "E/R", "alpha", "beta", "n"};
-    real_t *params[PARAMS_NUM];
+    /* TODO: real_t& param(int p)
+    {
+
+    }*/
 
     ModelParametersToFind ()
     {
@@ -27,6 +32,17 @@ struct ModelParametersToFind {
         params[2] = &alpha;
         params[3] = &beta;
         params[4] = &n;
+    }
+
+    ModelParametersToFind (const ModelParametersToFind& m)
+    {
+        params[0] = &A;
+        params[1] = &E_div_R;
+        params[2] = &alpha;
+        params[3] = &beta;
+        params[4] = &n;
+        for (int p = 0; p < PARAMS_NUM; ++p)
+            *params[p] = *m.params[p];
     }
 };
 
@@ -70,10 +86,7 @@ struct BurntTemperature {
     }
 };
 
-real_t calc_z (const ModelParameters& model_parameters)
-{
-    return model_parameters.nu * (1 + 3.762 * 28. / 32.);
-}
+real_t calc_z (const ModelParameters& model_parameters);
 
 struct ExperimentalData {
     real_t phi, Q_div_cp, v;
@@ -99,28 +112,22 @@ struct ParamRange {
 
 struct InputParam {
     ModelParameters model_parameters;
-    ModelParametersToFind model_parameters_to_find;
     std::vector<ParamRange> params_ranges;
 
     InputParam ()
-        : params_ranges(ModelParametersToFind::PARAMS_NUM)
+        : params_ranges(PARAMS_NUM)
     {}
 };
 
 struct Config {
     // steps for numerical differentiation
     real_t delta_A, delta_E_div_R, delta_alpha, delta_beta, delta_n;
-    real_t *delta[ModelParametersToFind::PARAMS_NUM];
     int N_trapezoid;
     real_t u_eps, max_u, u_init, max_speed;
 
-    Config ()
+    real_t delta (int param) const
     {
-        delta[0] = &delta_A;
-        delta[1] = &delta_E_div_R;
-        delta[2] = &delta_alpha;
-        delta[3] = &delta_beta;
-        delta[4] = &delta_n;
+        return *(&delta_A + param);
     }
 };
 

@@ -86,3 +86,21 @@ real_t calc_u (const ModelParameters& model_parameters,
     }
     return u;
 }
+
+// du/dp_k
+real_t calc_deriv_u (int k, const ModelParameters& model_parameters,
+    const ModelParametersToFind& model_parameters_to_find,
+    const ExperimentalData& experimental_data, const Config& config)
+{
+    ModelParametersToFind model_parameters_to_find1 = model_parameters_to_find;
+    real_t u = calc_u(model_parameters, model_parameters_to_find,
+        experimental_data, config);
+
+    real_t delta = config.delta(k);
+    *model_parameters_to_find1.params[k] += delta;
+    real_t u1 = calc_u(model_parameters, model_parameters_to_find1,
+        experimental_data, config);
+
+    real_t du_dpk = (u1 - u) / config.delta(k);
+    return du_dpk;
+}
