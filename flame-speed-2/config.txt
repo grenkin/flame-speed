@@ -1,15 +1,9 @@
 # Differentiation steps
-#delta_A = 1e5
-#delta_E/R = 0.5
-#delta_alpha = 0.0002
-#delta_beta = 0.0002
-#delta_n = 0.0001
-
-delta_A = 0.5e6
-delta_E/R = 5
-delta_alpha = 0.0005
-delta_beta = 0.0005
-delta_n = 0.0002
+delta_A = 1.4e8
+delta_E/R = 40
+delta_alpha = 0.008
+delta_beta = 0.0055
+delta_n = 0.0016
 
 # Grid size for the trapezoid method
 N_trapezoid = 1000 #10000

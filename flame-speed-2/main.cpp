@@ -233,7 +233,7 @@ std::vector<Interval> process_params_intervals (
     for (int i = 0; i < data_size; ++i) {
         // calculate minimal and maximal flame speed
         for (int p = 0; p < PARAMS_NUM; ++p)
-            *data.params[p] = x_left[p] * sign(u_deriv_sign[p]);
+            data.param(p) = x_left[p] * sign(u_deriv_sign[p]);
         try {
             min_ui[i] = calc_u(
                 model_parameters, data, experimental_data[i], config);
@@ -243,7 +243,7 @@ std::vector<Interval> process_params_intervals (
         }
 
         for (int p = 0; p < PARAMS_NUM; ++p)
-            *data.params[p] = x_right[p] * sign(u_deriv_sign[p]);
+            data.param(p) = x_right[p] * sign(u_deriv_sign[p]);
         try {
             max_ui[i] = calc_u(
                 model_parameters, data, experimental_data[i], config);
@@ -258,7 +258,7 @@ std::vector<Interval> process_params_intervals (
         // calculate minimal and maximal derivatives of the flame speed
         for (int k = 0; k < PARAMS_NUM; ++k) {
             for (int p = 0; p < PARAMS_NUM; ++p)
-                *data.params[p] = x_min_dudxk[k][p] * sign(u_deriv_sign[p]);
+                data.param(p) = x_min_dudxk[k][p] * sign(u_deriv_sign[p]);
             try {
                 min_dui_dxk[i][k] = calc_deriv_u(
                     k, model_parameters, data, experimental_data[i], config)
@@ -269,7 +269,7 @@ std::vector<Interval> process_params_intervals (
             }
 
             for (int p = 0; p < PARAMS_NUM; ++p)
-                *data.params[p] = x_max_dudxk[k][p] * sign(u_deriv_sign[p]);
+                data.param(p) = x_max_dudxk[k][p] * sign(u_deriv_sign[p]);
             try {
                 max_dui_dxk[i][k] = calc_deriv_u(
                     k, model_parameters, data, experimental_data[i], config)
@@ -332,8 +332,14 @@ std::vector<Interval> process_params_intervals (
             else
                 new_intervals[k] = Interval(-r, -l);
         }
+        out << PARAMS_NAMES[k] << " = ";
+        if (new_intervals[k].empty)
+            out << "empty\n";
+        else
+            out << new_intervals[k].left << " .. " << new_intervals[k].right << "\n";
         new_intervals[k] = intersect_intervals(new_intervals[k], intervals[k]);
     }
+    out << "\n";
 
     return new_intervals;
 }

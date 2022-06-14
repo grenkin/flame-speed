@@ -18,31 +18,10 @@ const std::string PARAMS_NAMES[5] = {
 
 struct ModelParametersToFind {
     real_t A, E_div_R, alpha, beta, n;
-    real_t* params[PARAMS_NUM];
 
-    /* TODO: real_t& param(int p)
+    real_t& param(int p)
     {
-
-    }*/
-
-    ModelParametersToFind ()
-    {
-        params[0] = &A;
-        params[1] = &E_div_R;
-        params[2] = &alpha;
-        params[3] = &beta;
-        params[4] = &n;
-    }
-
-    ModelParametersToFind (const ModelParametersToFind& m)
-    {
-        params[0] = &A;
-        params[1] = &E_div_R;
-        params[2] = &alpha;
-        params[3] = &beta;
-        params[4] = &n;
-        for (int p = 0; p < PARAMS_NUM; ++p)
-            *params[p] = *m.params[p];
+        return *(&A + p);
     }
 };
 

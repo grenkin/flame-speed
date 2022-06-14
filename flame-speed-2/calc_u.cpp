@@ -97,7 +97,7 @@ real_t calc_deriv_u (int k, const ModelParameters& model_parameters,
         experimental_data, config);
 
     real_t delta = config.delta(k);
-    *model_parameters_to_find1.params[k] += delta;
+    model_parameters_to_find1.param(k) += delta;
     real_t u1 = calc_u(model_parameters, model_parameters_to_find1,
         experimental_data, config);
 
