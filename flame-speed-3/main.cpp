@@ -190,8 +190,12 @@ bool accept_params_intervals (
     for (int k = 0; k < PARAMS_NUM; ++k) {
         real_t sum_min = 0, sum_max = 0;
         for (int i = 0; i < data_size; ++i) {
-            sum_min += (min_ui[i] - experimental_data[i].v) * min_dui_dxk[i][k];
-            sum_max += (max_ui[i] - experimental_data[i].v) * max_dui_dxk[i][k];
+            sum_min += (min_ui[i] - experimental_data[i].v)
+                * (min_ui[i] - experimental_data[i].v > 0 ? min_dui_dxk[i][k]
+                   : max_dui_dxk[i][k]);
+            sum_max += (max_ui[i] - experimental_data[i].v)
+                * (max_ui[i] - experimental_data[i].v > 0 ? max_dui_dxk[i][k]
+                   : min_dui_dxk[i][k]);
         }
         min_df_dxk[k] = sum_min;
         max_df_dxk[k] = sum_max;
