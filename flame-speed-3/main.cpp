@@ -243,6 +243,43 @@ real_t calc_sigma(const ModelParameters& model_parameters,
     return sigma;
 }
 
+// try to union a pair of ranges, if done return true
+bool union_pair_of_ranges (std::vector<std::vector<Interval>>& ranges)
+{
+    for (int i = 0; i < ranges.size(); i++) {
+        for (int j = 0; j < ranges.size(); j++) {
+            std::vector<int> diff_intervals;
+            for (int p = 0; p < PARAMS_NUM; p++) {
+                // if (ranges[i][p] != ranges[j][p])
+                if (ranges[i][p].left != ranges[j][p].left ||
+                    ranges[i][p].right != ranges[j][p].right)
+                {
+                    diff_intervals.push_back(p);
+                }
+            }
+            if (diff_intervals.size() == 1) {
+                int p = diff_intervals[0];
+                if (ranges[i][p].left == ranges[j][p].right) {
+                    ranges[j][p].right = ranges[i][p].right;
+                    ranges.erase(ranges.begin() + i);
+                    return true;
+                }
+                else if (ranges[i][p].right == ranges[j][p].left) {
+                    ranges[i][p].right = ranges[j][p].right;
+                    ranges.erase(ranges.begin() + j);
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void union_ranges (std::vector<std::vector<Interval>>& ranges)
+{
+    while (union_pair_of_ranges(ranges)) {}
+}
+
 int main (void)
 {
     std::cout << "Identification of reaction rate parameters in a combustion model\n\n";
@@ -297,6 +334,8 @@ int main (void)
 
     std::ofstream fout("output.txt");
     fout.precision(10);
+    //std::ofstream fout1("output_rej.txt");
+    //fout1.precision(10);
 
     // set bounds for enumeration
     std::vector<int> bounds(PARAMS_NUM);
@@ -304,6 +343,7 @@ int main (void)
         bounds[p] = input_param.params_ranges[p].num;
 
     Enumeration enumeration(bounds);
+    std::vector<std::vector<Interval>> accepted_ranges, rejected_ranges;
     while (!enumeration.end) {
         // enumerate (i0, i1, i2, i3, i4): 0 <= ip < params_ranges[p].num
         std::vector<Interval> intervals(PARAMS_NUM);  // intervals of parameters values
@@ -325,20 +365,52 @@ int main (void)
         if (accept_intervals && F_min < input_param.F_min) {
             for (int p = 0; p < PARAMS_NUM; ++p) {
                 pstr << PARAMS_NAMES[p] << " = ";
-                fout << PARAMS_NAMES[p] << " = ";
+               // fout << PARAMS_NAMES[p] << " = ";
                 pstr << intervals[p].left << " .. "
                     << intervals[p].right << "\n";
-                fout << intervals[p].left << " .. "
-                    << intervals[p].right << "\n";
+               // fout << intervals[p].left << " .. "
+               //     << intervals[p].right << "\n";
             }
             pstr << "\n";
-            fout << "\n";
+            //fout << "\n";
+            accepted_ranges.push_back(intervals);
         }
         else {
             pstr << "Intervals not accepted\n\n";
+            /*for (int p = 0; p < PARAMS_NUM; ++p) {
+                fout1 << PARAMS_NAMES[p] << " = ";
+                fout1 << intervals[p].left << " .. "
+                    << intervals[p].right << "\n";
+            }
+            fout1 << "\n";*/
+            rejected_ranges.push_back(intervals);
         }
 
         enumeration.next();
+    }
+
+    union_ranges(accepted_ranges);
+    union_ranges(rejected_ranges);
+
+    fout << "Accepted intervals:\n\n";
+    for (int i = 0; i < accepted_ranges.size(); ++i) {
+        std::vector<Interval> intervals = accepted_ranges[i];
+        for (int p = 0; p < PARAMS_NUM; ++p) {
+            fout << PARAMS_NAMES[p] << " = ";
+            fout << intervals[p].left << " .. "
+                << intervals[p].right << "\n";
+        }
+        fout << "\n";
+    }
+    fout << "\n\nRejected intervals:\n\n";
+    for (int i = 0; i < rejected_ranges.size(); ++i) {
+        std::vector<Interval> intervals = rejected_ranges[i];
+        for (int p = 0; p < PARAMS_NUM; ++p) {
+            fout << PARAMS_NAMES[p] << " = ";
+            fout << intervals[p].left << " .. "
+                << intervals[p].right << "\n";
+        }
+        fout << "\n";
     }
 
     return 0;
