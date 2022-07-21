@@ -68,7 +68,8 @@ bool accept_params_intervals (
     const std::vector<ExperimentalData>& experimental_data,
     const Config& config,
     const sign_t u_deriv_sign[PARAMS_NUM],
-    const sign_t u_deriv2_sign[PARAMS_NUM][PARAMS_NUM], PairStream& out)
+    const sign_t u_deriv2_sign[PARAMS_NUM][PARAMS_NUM], PairStream& out,
+    real_t& F_min, real_t& F_max)
 {
     std::vector<Interval> new_intervals(PARAMS_NUM);
     for (int p = 0; p < PARAMS_NUM; ++p) {
@@ -185,6 +186,21 @@ bool accept_params_intervals (
     }
     out << "\n";
 
+    // calculate estimates of minimum from below
+    //   and maximum of the objective function
+    F_min = 0.0;
+    F_max = 0.0;
+    for (int i = 0; i < data_size; ++i) {
+        if ((min_ui[i] - experimental_data[i].v)
+            * (max_ui[i] - experimental_data[i].v) > 0)
+        {
+            F_min += pow(fmin(fabs(min_ui[i] - experimental_data[i].v),
+                fabs(max_ui[i] - experimental_data[i].v)), 2);
+        }
+        F_max += pow(fmax(fabs(min_ui[i] - experimental_data[i].v),
+            fabs(max_ui[i] - experimental_data[i].v)), 2);
+    }
+
     // calculate necessary condition of minimum
     std::vector<real_t> min_df_dxk(PARAMS_NUM), max_df_dxk(PARAMS_NUM);
     for (int k = 0; k < PARAMS_NUM; ++k) {
@@ -300,9 +316,11 @@ int main (void)
             );
         }
 
+        real_t F_min, F_max;
         bool accept_intervals = accept_params_intervals(
             intervals, input_param.model_parameters, experimental_data, config,
-            u_deriv_sign, u_deriv2_sign, pstr);
+            u_deriv_sign, u_deriv2_sign, pstr, F_min, F_max);
+        std::cout << "F_min >= " << F_min << "   F_max <= " << F_max << std::endl;
 
         if (accept_intervals) {
             for (int p = 0; p < PARAMS_NUM; ++p) {
