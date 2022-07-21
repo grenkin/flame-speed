@@ -110,6 +110,7 @@ InputParam read_input_param ()
             ("beta_num", po::value<int>(), "beta_num")
             ("n", po::value<std::string>(), "n")
             ("n_num", po::value<int>(), "n_num")
+            ("F_min", po::value<double>(), "F_min")
         ;
 
         po::variables_map vm;
@@ -130,6 +131,7 @@ InputParam read_input_param ()
         get_range(vm, "alpha", input_param.params_ranges[2]);
         get_range(vm, "beta", input_param.params_ranges[3]);
         get_range(vm, "n", input_param.params_ranges[4]);
+        get_positive_double_param(vm, "F_min", input_param.F_min);
         return input_param;
     }
     catch (ParamIsNotSet e) {

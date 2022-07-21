@@ -322,7 +322,7 @@ int main (void)
             u_deriv_sign, u_deriv2_sign, pstr, F_min, F_max);
         std::cout << "F_min >= " << F_min << "   F_max <= " << F_max << std::endl;
 
-        if (accept_intervals) {
+        if (accept_intervals && F_min < input_param.F_min) {
             for (int p = 0; p < PARAMS_NUM; ++p) {
                 pstr << PARAMS_NAMES[p] << " = ";
                 fout << PARAMS_NAMES[p] << " = ";

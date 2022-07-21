@@ -92,6 +92,7 @@ struct ParamRange {
 struct InputParam {
     ModelParameters model_parameters;
     std::vector<ParamRange> params_ranges;
+    real_t F_min;  // estimate of minimum from below of the objective function
 
     InputParam ()
         : params_ranges(PARAMS_NUM)
