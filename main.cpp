@@ -1,3 +1,5 @@
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_linalg.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -24,8 +26,63 @@ public:
     }
 };
 
-int main (void)
+// Solve A^T (Ay + b) = 0
+// A is m*n-matrix, b is m-vector
+// The result is n-vector
+std::vector<real_t> solve_linear_system (
+    int m, int n, const std::vector<std::vector<real_t>>& a,
+    const std::vector<real_t>& b)
 {
+    std::vector<real_t> sol(n);
+    real_t A[m][n];
+    gsl_matrix *mat = gsl_matrix_alloc(n, n);
+    gsl_vector *vec = gsl_vector_alloc(n);
+    gsl_vector *y_vec = gsl_vector_alloc(n);
+    // int counter = 0;
+    // fill matrix of a linear system
+    for (int j = 0; j < n; j++) {
+        for (int i = 0; i < m; i++) {
+            A[i][j] = a[i][j];
+        }
+    }
+    for (int j = 0; j < n; j++) {
+        for (int k = j; k < n; k++) {
+            real_t sum = 0;
+            for (int i = 0; i < m; i++)
+                sum += A[i][j] * A[i][k];
+            gsl_matrix_set(mat, j, k, sum);
+            gsl_matrix_set(mat, k, j, sum);
+        }
+    }
+    // find Cholesky decomposition of the matrix
+    gsl_linalg_cholesky_decomp(mat);
+
+    // fill right-hand side of the linear system
+    for (int k = 0; k < n; k++) {
+        real_t sum = 0;
+        for (int i = 0; i < m; i++) {
+            real_t b_val;
+            b_val = b[i];
+            sum -= A[i][k] * b_val;
+        }
+        gsl_vector_set(vec, k, sum);
+    }
+
+    // solve the linear system
+    gsl_linalg_cholesky_solve(mat, vec, y_vec);
+    for (int k = 0; k < n; k++) {
+        real_t y_k = gsl_vector_get(y_vec, k);
+        sol[k] = y_k;
+    }
+
+    return sol;
+}
+
+int main (int argc, char* argv[])
+{
+    bool run_GN = false;
+    if (argc == 2 && std::string(argv[1]) == "-GN")
+        run_GN = true;
     std::cout << "Identification of reaction rate parameters in a combustion model\n\n";
     //Read input data
     InputParam input_param = read_input_param();
@@ -137,6 +194,51 @@ int main (void)
             F_deriv[p] = 0;
             F_deriv2[p] = 0;
         }
+        if (run_GN) {
+            // apply Gauss-Newton method
+
+            std::vector<std::vector<real_t>> a(Dnum, std::vector<real_t>(PARAMS));
+            std::vector<real_t> b(Dnum);
+
+            for (int j = 0; j < Dnum; ++j) {
+                for (int p = 0; p < PARAMS; ++p) {
+                    for (int q = 0; q < PARAMS; ++q) {
+                        if (q == p)
+                            *data_param[q] = *param_cur[q] + *delta[q];
+                        else
+                            *data_param[q] = *param_cur[q];
+                    }
+                    data.phi = phiD[j];
+                    data.Q_div_cp = Q_div_cp[j];
+                    real_t u_val = calc_u(data, config);
+                    // derivative with respect to p-th parameter
+                    real_t u_deriv = (u_val - u_cur[j]) / *delta[p];
+                    a[j][p] = u_deriv;
+                    b[j] = u_val - uD[j];
+                }
+            }
+
+            std::vector<real_t> y = solve_linear_system(Dnum, PARAMS, a, b);
+            for (int p = 0; p < PARAMS; ++p)
+                *param_cur[p] += y[p];
+
+            real_t F_new = 0;
+            for (int j = 0; j < Dnum; ++j) {
+                data.phi = phiD[j];
+                data.Q_div_cp = Q_div_cp[j];
+                for (int p = 0; p < PARAMS; ++p)
+                    *data_param[p] = *param_cur[p];
+                u_new[j] = calc_u(data, config);
+                F_new += w[j] * pow(u_new[j] - uD[j], 2);
+            }
+
+            pstr << "Gauss-Newton:\n";
+            pstr << "F = " << F_new << "\n";
+            for (int p = 0; p < PARAMS; ++p)
+                pstr << param_name[p] << " = " << *param_cur[p] << "\n";
+            pstr << "\n";
+        }
+
         for (int j = 0; j < Dnum; ++j) {
             for (int p = 0; p < PARAMS; ++p) {
                 if (!*optimize_param[p])
