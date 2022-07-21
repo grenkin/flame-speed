@@ -6,7 +6,7 @@
 real_t calc_u(const ModelParameters&, const ModelParametersToFind&,
     const ExperimentalData&, const Config&);
 real_t calc_deriv_u(int k, const ModelParameters&,
-    const ModelParametersToFind&, const ExperimentalData&, const Config&);
+    const ModelParametersToFind&, const ExperimentalData&, const Config&, real_t ui = 0.0);
 
 class umax_achieved {};
 

@@ -155,11 +155,18 @@ bool accept_params_intervals (
 
         // calculate minimal and maximal derivatives of the flame speed
         for (int k = 0; k < PARAMS_NUM; ++k) {
-            for (int p = 0; p < PARAMS_NUM; ++p)
+            bool use_x_left = true;
+            for (int p = 0; p < PARAMS_NUM; ++p) {
                 data.param(p) = x_min_dudxk[k][p] * sign(u_deriv_sign[p]);
+                use_x_left = use_x_left && (x_min_dudxk[k][p] == x_left[p]);
+            }
+            // use_x_left = forall p : x_min_dudxk[k][p] == x_left[p]
             try {
+                real_t ui = 0.0;
+                if (use_x_left)
+                    ui = min_ui[i];
                 min_dui_dxk[i][k] = calc_deriv_u(
-                    k, model_parameters, data, experimental_data[i], config)
+                    k, model_parameters, data, experimental_data[i], config, ui)
                     * sign(u_deriv_sign[k]);
             }
             catch (umax_achieved) {
@@ -167,11 +174,18 @@ bool accept_params_intervals (
                 out << "umax_achieved\n";
             }
 
-            for (int p = 0; p < PARAMS_NUM; ++p)
+            bool use_x_right = true;
+            for (int p = 0; p < PARAMS_NUM; ++p) {
                 data.param(p) = x_max_dudxk[k][p] * sign(u_deriv_sign[p]);
+                use_x_right = use_x_right && (x_max_dudxk[k][p] == x_right[p]);
+            }
+            // use_x_right = forall p : x_max_dudxk[k][p] == x_right[p]
             try {
+                real_t ui = 0.0;
+                if (use_x_right)
+                    ui = max_ui[i];
                 max_dui_dxk[i][k] = calc_deriv_u(
-                    k, model_parameters, data, experimental_data[i], config)
+                    k, model_parameters, data, experimental_data[i], config, ui)
                     * sign(u_deriv_sign[k]);
             }
             catch (umax_achieved) {
