@@ -65,13 +65,14 @@ bool inside_the_interval (real_t x, Interval interval)
 real_t calc_func (
     const ModelParametersToFind& data, const ModelParameters& model_parameters,
     const std::vector<ExperimentalData>& experimental_data,
-    const Config& config)
+    const Config& config, std::vector<real_t>& u)
 {
     int m = experimental_data.size();
     real_t F = 0.0;
     for (int i = 0; i < m; i++) {
         real_t u_i = calc_u(model_parameters, data, experimental_data[i], config);
         F += pow(u_i - experimental_data[i].v, 2);
+        u[i] = u_i;
     }
     return F;
 }
@@ -79,8 +80,8 @@ real_t calc_func (
 void calc_func_gradient (
     const ModelParametersToFind& data, const ModelParameters& model_parameters,
     const std::vector<ExperimentalData>& experimental_data,
-    const Config& config, real_t& F, std::vector<real_t>& grad_F,
-    std::vector<real_t>& F_deriv2)
+    const Config& config, bool u_filled, const std::vector<real_t>& u,
+    real_t& F, std::vector<real_t>& grad_F, std::vector<real_t>& F_deriv2)
 {
     int m = experimental_data.size();
     F = 0.0;
@@ -90,7 +91,11 @@ void calc_func_gradient (
     }
 
     for (int i = 0; i < m; i++) {
-        real_t u_i = calc_u(model_parameters, data, experimental_data[i], config);
+        real_t u_i;
+        if (u_filled)
+            u_i = u[i];
+        else
+            u_i = calc_u(model_parameters, data, experimental_data[i], config);
         F += pow(u_i - experimental_data[i].v, 2);
         for (int j = 0; j < PARAMS_NUM; j++) {
             real_t dui_dxj = calc_deriv_u(j, model_parameters, data,
@@ -137,8 +142,10 @@ bool reject_with_gradient_descent (
     real_t F;
     // grad_F and F_deriv2 are approximations of the first and the second derivatives of F
     std::vector<real_t> grad_F(PARAMS_NUM), F_deriv2(PARAMS_NUM);
+    std::vector<real_t> u(experimental_data.size());
+    bool u_filled = false;
     calc_func_gradient(data, model_parameters, experimental_data, config,
-        F, grad_F, F_deriv2);
+        u_filled, u, F, grad_F, F_deriv2);
     // adjust the point so that gradient points inside the range
     for (int p = 0; p < PARAMS_NUM; ++p) {
         if (starting_point == STARTING_POINT_LEFT) {
@@ -172,12 +179,13 @@ bool reject_with_gradient_descent (
     for (int iter = 1; iter <= config.gradient_descent_steps; ++iter) {
         out << "iteration " << iter << "\n";
         calc_func_gradient(data, model_parameters, experimental_data, config,
-            F, grad_F, F_deriv2);
+            u_filled, u, F, grad_F, F_deriv2);
         for (int p = 0; p < PARAMS_NUM; ++p)
             out << "F_" << PARAMS_NAMES[p] << " = " << grad_F[p] << "   ";
         out << "\n";
         // invariant: F (but not grad_F and F_deriv2, see (1)) corresponds
-        //   to the results of computations for data
+        //   to the results of computations for data,
+        //   and if u_filled == true then u also corresponds to data
 
         int lambda_decr = 0;  // the number of subsequent decreases of lambda
         while (1) {
@@ -187,8 +195,8 @@ bool reject_with_gradient_descent (
                 new_data.param(p) = data.param(p)
                     - lambda / F_deriv2[p] * grad_F[p];
             // Calculate the flame speeds and the objective function for the new guess
-            real_t F_new = calc_func(new_data, model_parameters, experimental_data, config);
-            // TODO: save flame speeds and return from the function calc_func?
+            real_t F_new = calc_func(new_data, model_parameters, experimental_data, config, u);
+            u_filled = true;
             if (F_new <= F) {
                 // Accept the new guess
                 data = new_data;
@@ -250,6 +258,7 @@ bool reject_with_gradient_descent (
         out << "Not rejected with gradient descent\n\n";
         return false;
     }
+    // return the algorithm cutted box from the function?
 }
 
 bool accept_params_intervals (
@@ -440,7 +449,16 @@ bool accept_params_intervals (
     else {
         // TODO: use information of gradient descent work for cutting the box
         //   run the gradient descent from STARTING_POINT_RIGHT too
-        return true;
+
+        if (reject_with_gradient_descent(intervals, model_parameters,
+            experimental_data, config, u_deriv_sign, STARTING_POINT_RIGHT, out))
+        {
+            return false;
+        }
+        else
+            return true;
+
+        // TODO: don't run gradient descent if
     }
 }
 
@@ -576,6 +594,7 @@ int main (void)
         bool accept_intervals = accept_params_intervals(
             intervals, input_param.model_parameters, experimental_data, config,
             u_deriv_sign, u_deriv2_sign, pstr, F_min, F_max);
+        // TODO: implement gradient descent in a separate function
         pstr << "F_min >= " << F_min << "   F_max <= " << F_max << "\n";
 
         if (accept_intervals && F_min < input_param.F_min) {
