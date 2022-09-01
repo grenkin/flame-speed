@@ -163,6 +163,10 @@ Config read_config ()
             ("u_init", po::value<double>(), "u_init")
             ("max_u", po::value<double>(), "max_u")
             ("max_speed", po::value<double>(), "max_speed")
+            ("lambda_threshold", po::value<int>(), "lambda_threshold")
+            ("lambda_decr_max", po::value<int>(), "lambda_decr_max")
+            ("gradient_descent_step_size", po::value<double>(), "gradient_descent_step_size")
+            ("gradient_descent_steps", po::value<int>(), "gradient_descent_steps")
         ;
 
         po::variables_map vm;
@@ -185,6 +189,11 @@ Config read_config ()
         get_positive_double_param(vm, "u_init", config.u_init);
         get_positive_double_param(vm, "max_u", config.max_u);
         get_positive_double_param(vm, "max_speed", config.max_speed);
+        get_int_param(vm, "lambda_threshold", config.lambda_threshold);
+        get_int_param(vm, "lambda_decr_max", config.lambda_decr_max);
+        get_positive_double_param(vm, "gradient_descent_step_size",
+            config.gradient_descent_step_size);
+        get_int_param(vm, "gradient_descent_steps", config.gradient_descent_steps);
         return config;
     }
     catch (ParamIsNotSet e) {

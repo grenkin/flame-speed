@@ -104,6 +104,10 @@ struct Config {
     real_t delta_A, delta_E_div_R, delta_alpha, delta_beta, delta_n;
     int N_trapezoid;
     real_t u_eps, max_u, u_init, max_speed;
+    int lambda_threshold;  // after what number of steps increasing of lambda should occur
+    int lambda_decr_max;  //  maximum number of decreases of lambda
+    real_t gradient_descent_step_size;
+    int gradient_descent_steps;  // number of steps for accepting or rejecting a range
 
     real_t delta (int param) const
     {
