@@ -118,6 +118,7 @@ bool reject_with_gradient_descent (
     const std::vector<ExperimentalData>& experimental_data,
     const Config& config,
     const sign_t u_deriv_sign[PARAMS_NUM], StartingPoint starting_point,
+    std::vector<Interval>& gradient_descent_box,
     PairStream& out)
 {
     out << "Check with gradient descent\n";
@@ -230,6 +231,12 @@ bool reject_with_gradient_descent (
         }
     }
 
+    gradient_descent_box.resize(PARAMS_NUM);
+    for (int p = 0; p < PARAMS_NUM; p++) {
+        gradient_descent_box[p].left = fmin(initial_data.param(p), data.param(p));
+        gradient_descent_box[p].right = fmax(initial_data.param(p), data.param(p));
+    }
+
     out << "Input box:\n";
     for (int p = 0; p < PARAMS_NUM; ++p) {
         out << PARAMS_NAMES[p] << " = "
@@ -239,15 +246,15 @@ bool reject_with_gradient_descent (
     out << "Algorithm cutted box:\n";
     for (int p = 0; p < PARAMS_NUM; ++p) {
         out << PARAMS_NAMES[p] << " = "
-            << fmin(initial_data.param(p), data.param(p)) << " .. "
-            << fmax(initial_data.param(p), data.param(p)) << "\n";
+            << gradient_descent_box[p].left << " .. "
+            << gradient_descent_box[p].right << "\n";
     }
     out << "\n";
 
     bool ok = true;
     for (int p = 0; p < PARAMS_NUM; p++) {
-        ok = ok && fmin(initial_data.param(p), data.param(p)) <= intervals[p].left
-            && fmax(initial_data.param(p), data.param(p)) >= intervals[p].right;
+        ok = ok && gradient_descent_box[p].left <= intervals[p].left
+            && gradient_descent_box[p].right >= intervals[p].right;
     }
 
     if (ok) {
@@ -258,7 +265,6 @@ bool reject_with_gradient_descent (
         out << "Not rejected with gradient descent\n\n";
         return false;
     }
-    // return the algorithm cutted box from the function?
 }
 
 bool accept_params_intervals (
@@ -438,28 +444,10 @@ bool accept_params_intervals (
     bool accept = true;
     for (int k = 0; k < PARAMS_NUM; ++k)
         accept = accept && (min_df_dxk[k] <= 0 && 0 <= max_df_dxk[k]);
-    if (!accept)
-        return false;
+   // if (!accept)
+   //     return false;
 
-    if (reject_with_gradient_descent(intervals, model_parameters,
-        experimental_data, config, u_deriv_sign, STARTING_POINT_LEFT, out))
-    {
-        return false;
-    }
-    else {
-        // TODO: use information of gradient descent work for cutting the box
-        //   run the gradient descent from STARTING_POINT_RIGHT too
-
-        if (reject_with_gradient_descent(intervals, model_parameters,
-            experimental_data, config, u_deriv_sign, STARTING_POINT_RIGHT, out))
-        {
-            return false;
-        }
-        else
-            return true;
-
-        // TODO: don't run gradient descent if
-    }
+    return accept;
 }
 
 real_t calc_sigma(const ModelParameters& model_parameters,
@@ -568,6 +556,8 @@ int main (void)
 
     std::ofstream fout("output.txt");
     fout.precision(10);
+    std::ofstream fgrad("output_grad.txt");
+    fout.precision(10);
     //std::ofstream fout1("output_rej.txt");
     //fout1.precision(10);
 
@@ -598,26 +588,48 @@ int main (void)
         pstr << "F_min >= " << F_min << "   F_max <= " << F_max << "\n";
 
         if (accept_intervals && F_min < input_param.F_min) {
+            bool accept = true;
+            fgrad << "Input box:\n";
+            for (int p = 0; p < PARAMS_NUM; ++p) {
+                fgrad << PARAMS_NAMES[p] << " = "
+                    << intervals[p].left << " .. " << intervals[p].right << "\n";
+            }
+            fgrad << "\n";
+
+            std::vector<Interval> box(PARAMS_NUM);
+            bool grad_reject = reject_with_gradient_descent(intervals, input_param.model_parameters,
+                experimental_data, config, u_deriv_sign, STARTING_POINT_LEFT, box, pstr);
+            fgrad << "Algorithm cutted box:\n";
+            for (int p = 0; p < PARAMS_NUM; ++p) {
+                fgrad << PARAMS_NAMES[p] << " = "
+                    << box[p].left << " .. " << box[p].right << "\n";
+            }
+
+            if (grad_reject) {
+                accept = false;
+            }
+            else {
+                grad_reject = reject_with_gradient_descent(intervals, input_param.model_parameters,
+                    experimental_data, config, u_deriv_sign, STARTING_POINT_RIGHT, box, pstr);
+                fgrad << "\n";
+                fgrad << "Algorithm cutted box:\n";
+                for (int p = 0; p < PARAMS_NUM; ++p) {
+                    fgrad << PARAMS_NAMES[p] << " = "
+                        << box[p].left << " .. " << box[p].right << "\n";
+                }
+                fgrad << "\n";
+            }
+
             for (int p = 0; p < PARAMS_NUM; ++p) {
                 pstr << PARAMS_NAMES[p] << " = ";
-               // fout << PARAMS_NAMES[p] << " = ";
                 pstr << intervals[p].left << " .. "
                     << intervals[p].right << "\n";
-               // fout << intervals[p].left << " .. "
-               //     << intervals[p].right << "\n";
             }
             pstr << "\n";
-            //fout << "\n";
             accepted_ranges.push_back(intervals);
         }
         else {
             pstr << "Intervals not accepted\n\n";
-            /*for (int p = 0; p < PARAMS_NUM; ++p) {
-                fout1 << PARAMS_NAMES[p] << " = ";
-                fout1 << intervals[p].left << " .. "
-                    << intervals[p].right << "\n";
-            }
-            fout1 << "\n";*/
             rejected_ranges.push_back(intervals);
         }
 
