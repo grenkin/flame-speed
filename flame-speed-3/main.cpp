@@ -112,6 +112,22 @@ enum StartingPoint {
     STARTING_POINT_RIGHT
 };
 
+void print_parameters (ModelParametersToFind& data, PairStream& out)
+{
+    for (int p = 0; p < PARAMS_NUM; ++p)
+        out << PARAMS_NAMES[p] << " = " << data.param(p) << "\n";
+    out << "\n";
+}
+
+void print_intervals (const std::vector<Interval>& intervals, PairStream& out)
+{
+    for (int p = 0; p < PARAMS_NUM; ++p) {
+        out << PARAMS_NAMES[p] << " = "
+            << intervals[p].left << " .. " << intervals[p].right << "\n";
+    }
+    out << "\n";
+}
+
 bool reject_with_gradient_descent (
     const std::vector<Interval>& intervals,
     const ModelParameters& model_parameters,
@@ -122,14 +138,10 @@ bool reject_with_gradient_descent (
     PairStream& out)
 {
     out << "Check with gradient descent\n";
-    for (int p = 0; p < PARAMS_NUM; ++p) {
-        out << PARAMS_NAMES[p] << " = "
-            << intervals[p].left << " .. " << intervals[p].right << "\n";
-    }
-    out << "\n";
+    print_intervals(intervals, out);
 
-    // calculate the gradient in some point
     ModelParametersToFind data;
+    // Set the starting point (data) for gradient descent
     for (int p = 0; p < PARAMS_NUM; ++p) {
         if (starting_point == STARTING_POINT_LEFT) {
             data.param(p) = (
@@ -140,11 +152,32 @@ bool reject_with_gradient_descent (
                 u_deriv_sign[p] == PLUS ? intervals[p].right : intervals[p].left);
         }
     }
-    real_t F;
+
+    real_t F;  // current value of the objective function
+    std::vector<real_t> u(experimental_data.size());  // current flame speed
     // grad_F and F_deriv2 are approximations of the first and the second derivatives of F
     std::vector<real_t> grad_F(PARAMS_NUM), F_deriv2(PARAMS_NUM);
-    std::vector<real_t> u(experimental_data.size());
     bool u_filled = false;
+
+    out << "Choosing the starting point...\n";
+    print_parameters(data, out);
+    for (int p = 0; p < PARAMS_NUM; ++p) {
+        calc_func_gradient(data, model_parameters, experimental_data, config,
+            u_filled, u, F, grad_F, F_deriv2);
+        // adjust the point so that gradient points out inside the range
+        if (grad_F[p] > 0 && data.param(p) == intervals[p].left)
+            data.param(p) = intervals[p].right;
+        else if (grad_F[p] < 0 && data.param(p) == intervals[p].right)
+            data.param(p) = intervals[p].left;
+        for (int p = 0; p < PARAMS_NUM; ++p) {
+            out << PARAMS_NAMES[p] << " = " << data.param(p)
+                << "  (" << (data.param(p) == intervals[p].left ? "left" : "right") << ")"
+                << "   F_" << PARAMS_NAMES[p] << " = " << grad_F[p] << "\n";
+        }
+        out << "\n";
+    }
+
+/*
     calc_func_gradient(data, model_parameters, experimental_data, config,
         u_filled, u, F, grad_F, F_deriv2);
     // adjust the point so that gradient points inside the range
@@ -168,6 +201,7 @@ bool reject_with_gradient_descent (
             }
         }
     }
+*/
 
     ModelParametersToFind initial_data = data;
 
@@ -277,11 +311,7 @@ bool accept_params_intervals (
     real_t& F_min, real_t& F_max)
 {
     std::vector<Interval> new_intervals(PARAMS_NUM);
-    for (int p = 0; p < PARAMS_NUM; ++p) {
-        out << PARAMS_NAMES[p] << " = "
-            << intervals[p].left << " .. " << intervals[p].right << "\n";
-    }
-    out << "\n";
+    print_intervals(intervals, out);
 
     // data contains parameters to optimize
     ModelParametersToFind data;
@@ -444,8 +474,6 @@ bool accept_params_intervals (
     bool accept = true;
     for (int k = 0; k < PARAMS_NUM; ++k)
         accept = accept && (min_df_dxk[k] <= 0 && 0 <= max_df_dxk[k]);
-   // if (!accept)
-   //     return false;
 
     return accept;
 }
@@ -558,8 +586,6 @@ int main (void)
     fout.precision(10);
     std::ofstream fgrad("output_grad.txt");
     fout.precision(10);
-    //std::ofstream fout1("output_rej.txt");
-    //fout1.precision(10);
 
     // set bounds for enumeration
     std::vector<int> bounds(PARAMS_NUM);
@@ -584,7 +610,6 @@ int main (void)
         bool accept_intervals = accept_params_intervals(
             intervals, input_param.model_parameters, experimental_data, config,
             u_deriv_sign, u_deriv2_sign, pstr, F_min, F_max);
-        // TODO: implement gradient descent in a separate function
         pstr << "F_min >= " << F_min << "   F_max <= " << F_max << "\n";
 
         if (accept_intervals && F_min < input_param.F_min) {
