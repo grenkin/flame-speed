@@ -1,0 +1,24 @@
+# Differentiation steps
+delta_A = 1.4e8
+delta_E/R = 40
+delta_alpha = 0.008
+delta_beta = 0.0055
+delta_n = 0.0016
+
+# Grid size for the trapezoid method
+N_trapezoid = 1000  #10000
+
+# Parameters of the gradient descent method
+lambda_threshold = 3
+lambda_decr_max = 50
+gradient_descent_step_size = 0.001
+gradient_descent_steps = 30
+
+# Parameters of flame speed calculation
+u_eps = 1e-5 #1e-8
+u_init = 1.0
+max_u = 100000
+
+# Maximum real flame speed
+max_speed = 1
+
