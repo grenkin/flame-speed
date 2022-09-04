@@ -164,7 +164,7 @@ bool reject_with_gradient_descent (
         }
         vector<real_t> u(experimental_data.size());
         real_t F = calc_func(data, model_parameters, experimental_data, config, u);
-        if (F < max_F)
+        if (F > max_F)
             max_data = data;
         print_data(data, out);
         out << "F = " << F << "\n\n";
