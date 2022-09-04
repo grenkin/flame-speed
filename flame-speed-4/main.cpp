@@ -164,8 +164,10 @@ bool reject_with_gradient_descent (
         }
         vector<real_t> u(experimental_data.size());
         real_t F = calc_func(data, model_parameters, experimental_data, config, u);
-        if (F > max_F)
+        if (F > max_F) {
             max_data = data;
+            max_F = F;
+        }
         print_data(data, out);
         out << "F = " << F << "\n\n";
         enumeration.next();
@@ -611,7 +613,7 @@ int main (void)
     vector<vector<Interval>> ranges;
     ranges.push_back(intervals);
 
-    while (true) {
+    while (!ranges.empty()) {
         // Choose the interval with maximum range
         real_t max_range_size = 0.0;
         int max_range_index = -1;
@@ -710,7 +712,8 @@ int main (void)
             //pstr << "Intervals not accepted\n\n";
             //rejected_ranges.push_back(intervals);
         }
-    } // while (true)
+    } // while (!ranges.empty())
+
     /*
     union_ranges(accepted_ranges);
     union_ranges(rejected_ranges);
