@@ -614,6 +614,12 @@ int main (void)
     ranges.push_back(intervals);
 
     while (!ranges.empty()) {
+        pstr << "Ranges: " << ranges.size() << "\n";
+        for (int k = 0; k < ranges.size(); k++) {
+            pstr << k + 1 << ":\n";
+            print_intervals(ranges[k], pstr);
+        }
+
         // Choose the interval with maximum range
         real_t max_range_size = 0.0;
         int max_range_index = -1;
@@ -632,13 +638,16 @@ int main (void)
             }
         }
 
-        // if (right - left) < eps
-        if (max_range_size < 1)
-            break;
-
         intervals = ranges[max_range_index];
         // delete the element of ranges with index i
         ranges.erase(ranges.begin() + max_range_index);
+
+        // if (right - left) < eps
+        if (max_range_size < 1) {
+            pstr << "The range is < eps\n";
+            //continue;
+            break;
+        }
 
         real_t F_min, F_max;
         bool accept_intervals = accept_params_intervals(
@@ -664,7 +673,7 @@ int main (void)
             }
 
             if (!grad_reject) {
-                grad_reject = reject_with_gradient_descent(intervals, input_param.model_parameters,
+                /*grad_reject = reject_with_gradient_descent(intervals, input_param.model_parameters,
                     experimental_data, config, u_deriv_sign, box, pstr);
                 fgrad << "\n";
                 fgrad << "Algorithm cutted box:\n";
@@ -672,7 +681,7 @@ int main (void)
                     fgrad << PARAMS_NAMES[p] << " = "
                         << box[p].left << " .. " << box[p].right << "\n";
                 }
-                fgrad << "\n";
+                fgrad << "\n";*/
 
                 // Split the interval into parts with corner -
                 //   final point of gradient descent
@@ -697,6 +706,21 @@ int main (void)
                 // Make ranges of new_ranges excluding the box
                 //   cutted with gradient descent
 
+                Enumeration enumeration(PARAMS_NUM);
+                while (!enumeration.end) {
+                    vector<Interval> new_intervals(PARAMS_NUM);
+                    bool is_box = true;
+                    for (int p = 0; p < PARAMS_NUM; p++) {
+                        if (enumeration.v[p] < new_ranges[p].size())
+                            new_intervals[p] = new_ranges[p][enumeration.v[p]];
+                        is_box = is_box && (new_intervals[p].left == box[p].left
+                            && new_intervals[p].right == box[p].right);
+                    }
+                    if (!is_box) {
+                        ranges.push_back(new_intervals);
+                    }
+                    enumeration.next();
+                }
             }
 
            /* for (int p = 0; p < PARAMS_NUM; ++p) {
