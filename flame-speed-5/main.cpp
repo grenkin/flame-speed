@@ -523,7 +523,7 @@ int main (void)
         }
         real_t F;
         ofstream fout("output.txt", std::ios_base::app);
-        fout << "Starting point:\n";
+        fout << "\n-------------\nStarting point:\n";
         print_parameters(data, fout);
         try {
             start_gradient_descent(data, input_param.model_parameters,
@@ -531,6 +531,26 @@ int main (void)
             fout << "Final point:\n";
             print_parameters(new_data, fout);
             fout << "F = " << F << "\n";
+            fout << "sigma = " << calc_sigma(input_param.model_parameters,
+                new_data, experimental_data, config) << "\n";
+
+            // Calculate projections of the final point to the hyperplanes
+            for (int p = 0; p < PARAMS_NUM; p++) {
+                ModelParametersToFind new_data_projection = new_data;
+                new_data_projection.param(p) = data.param(p);
+                fout.close();
+                fout.open("output.txt", std::ios_base::app);
+                fout << "\n-------------\nProjection:\n";
+                print_parameters(new_data_projection, fout);
+                start_gradient_descent(new_data_projection,
+                    input_param.model_parameters,
+                    experimental_data, config, new_data, F, pstr);
+                fout << "Final point:\n";
+                print_parameters(new_data, fout);
+                fout << "F = " << F << "\n";
+                fout << "sigma = " << calc_sigma(input_param.model_parameters,
+                    new_data, experimental_data, config) << "\n";
+            }
         }
         catch (umax_achieved) {
             fout << "umax_achieved\n";
