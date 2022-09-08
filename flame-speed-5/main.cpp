@@ -420,14 +420,14 @@ bool accept_params_intervals (
 
 real_t calc_sigma(const ModelParameters& model_parameters,
     const ModelParametersToFind& data,
-    const vector<ExperimentalData>& experimental_data, const Config& config)
+    const vector<ExperimentalData>& experimental_data, const Config& config,
+    vector<real_t>& u)
 {
     int m = experimental_data.size();
     real_t sum = 0.0;
     for (int i = 0; i < m; i++) {
-        sum += pow(
-            calc_u(model_parameters, data, experimental_data[i], config)
-            - experimental_data[i].v, 2);
+        u[i] = calc_u(model_parameters, data, experimental_data[i], config);
+        sum += pow(u[i] - experimental_data[i].v, 2);
     }
     real_t sigma = sqrt(sum / m);
     return sigma;
@@ -523,7 +523,10 @@ int main (void)
     fout_t.close();
     ofstream fstat_points("stat_points.txt");
     fstat_points.precision(10);
-    fstat_points << "A,E/R,alpha,beta,n,sigma" << endl;
+    fstat_points << "A,E/R,alpha,beta,n,sigma";
+    for (int i = 0; i < experimental_data.size(); i++)
+        fstat_points << "," << "u[" << i + 1 << "]";
+    fstat_points << endl;
     fstat_points.close();
 
     vector<Interval> intervals(PARAMS_NUM);  // intervals of parameters values
@@ -556,8 +559,10 @@ int main (void)
             fout << "Final point:\n";
             print_parameters(new_data, fout);
             fout << "F = " << F << "\n";
-            fout << "sigma = " << calc_sigma(input_param.model_parameters,
-                new_data, experimental_data, config) << "\n";
+            vector<real_t> u(experimental_data.size());
+            real_t sigma = calc_sigma(input_param.model_parameters,
+                new_data, experimental_data, config, u);
+            fout << "sigma = " << sigma << "\n";
 
             ofstream fstat_points("stat_points.txt", std::ios_base::app);
             for (int p = 0; p < PARAMS_NUM; p++) {
@@ -565,7 +570,10 @@ int main (void)
                     fstat_points << ",";
                 fstat_points << new_data.param(p);
             }
-            fstat_points << "\n";
+            fstat_points << "," << sigma;
+            for (int i = 0; i < experimental_data.size(); i++)
+                fstat_points << "," << u[i];
+            fstat_points << endl;
 
             ofstream fout_t("output_t.txt", std::ios_base::app);
             fout_t << "\n-------------\n\n\nStarting point:\n";
