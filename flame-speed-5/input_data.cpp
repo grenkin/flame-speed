@@ -153,6 +153,7 @@ Config read_config ()
             ("gradient_descent_step_size", po::value<double>(), "gradient_descent_step_size")
             ("gradient_descent_steps", po::value<int>(), "gradient_descent_steps")
             ("lambda_min", po::value<double>(), "lambda_min")
+            ("sigma_threshold", po::value<double>(), "sigma_threshold")
         ;
 
         po::variables_map vm;
@@ -181,6 +182,7 @@ Config read_config ()
             config.gradient_descent_step_size);
         get_int_param(vm, "gradient_descent_steps", config.gradient_descent_steps);
         get_positive_double_param(vm, "lambda_min", config.lambda_min);
+        get_positive_double_param(vm, "sigma_threshold", config.sigma_threshold);
         return config;
     }
     catch (ParamIsNotSet e) {

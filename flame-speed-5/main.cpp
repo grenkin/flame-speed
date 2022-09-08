@@ -127,12 +127,18 @@ void print_intervals (const vector<Interval>& intervals, T& out)
     out << "\n";
 }
 
+struct TrajectoryItem {
+    ModelParametersToFind data;
+    real_t sigma;
+};
+
 void start_gradient_descent (
     const ModelParametersToFind& starting_point,
     const ModelParameters& model_parameters,
     const vector<ExperimentalData>& experimental_data,
     const Config& config,
     ModelParametersToFind& final_point, real_t& final_F,
+    vector<TrajectoryItem>& trajectory,
     PairStream& out)
 {
     out << "Start gradient descent\n";
@@ -165,6 +171,15 @@ void start_gradient_descent (
 
         int lambda_decr = 0;  // the number of subsequent decreases of lambda
         while (1) {
+            real_t sigma = sqrt(F / experimental_data.size());
+            // complement the trajectory
+            if (sigma < config.sigma_threshold) {
+                TrajectoryItem item;
+                item.data = data;
+                item.sigma = sigma;
+                trajectory.push_back(item);
+            }
+
             // Calculate the new guess
             ModelParametersToFind new_data;
             for (int p = 0; p < PARAMS_NUM; ++p)
@@ -182,7 +197,8 @@ void start_gradient_descent (
                 throw umax_achieved();
             }
             u_filled = true;
-            if (F_new <= F) {
+            real_t sigma_new = sqrt(F_new / experimental_data.size());
+            if (F_new <= F || sigma_new < config.sigma_threshold) {
                 // Accept the new guess
                 data = new_data;
                 F = F_new;  // (1)
@@ -209,7 +225,8 @@ void start_gradient_descent (
         if (lambda < config.lambda_min)
             break;
         print_parameters(data, out);
-        out << "F = " << F << "\n\n";
+        out << "F = " << F << "\n";
+        out << "sigma = " << sqrt(F / experimental_data.size()) << "\n\n";
         ++lambda_not_changed;
         // If lambda was not decreased for many times, then increase lambda;
         // if lambda was not increased for many times, then increase lambda again
@@ -501,6 +518,13 @@ int main (void)
     PairStream pstr(flog);
     ofstream fout("output.txt");
     fout.precision(10);
+    ofstream fout_t("output_t.txt");
+    fout_t.precision(10);
+    fout_t.close();
+    ofstream fstat_points("stat_points.txt");
+    fstat_points.precision(10);
+    fstat_points << "A,E/R,alpha,beta,n,sigma" << endl;
+    fstat_points.close();
 
     vector<Interval> intervals(PARAMS_NUM);  // intervals of parameters values
     for (int p = 0; p < PARAMS_NUM; ++p) {
@@ -526,32 +550,33 @@ int main (void)
         fout << "\n-------------\nStarting point:\n";
         print_parameters(data, fout);
         try {
+            vector<TrajectoryItem> trajectory;
             start_gradient_descent(data, input_param.model_parameters,
-                experimental_data, config, new_data, F, pstr);
+                experimental_data, config, new_data, F, trajectory, pstr);
             fout << "Final point:\n";
             print_parameters(new_data, fout);
             fout << "F = " << F << "\n";
             fout << "sigma = " << calc_sigma(input_param.model_parameters,
                 new_data, experimental_data, config) << "\n";
-/*
-            // Calculate projections of the final point to the hyperplanes
+
+            ofstream fstat_points("stat_points.txt", std::ios_base::app);
             for (int p = 0; p < PARAMS_NUM; p++) {
-                ModelParametersToFind new_data_projection = new_data;
-                new_data_projection.param(p) = data.param(p);
-                fout.close();
-                fout.open("output.txt", std::ios_base::app);
-                fout << "\n-------------\nProjection:\n";
-                print_parameters(new_data_projection, fout);
-                start_gradient_descent(new_data_projection,
-                    input_param.model_parameters,
-                    experimental_data, config, new_data, F, pstr);
-                fout << "Final point:\n";
-                print_parameters(new_data, fout);
-                fout << "F = " << F << "\n";
-                fout << "sigma = " << calc_sigma(input_param.model_parameters,
-                    new_data, experimental_data, config) << "\n";
+                if (p > 0)
+                    fstat_points << ",";
+                fstat_points << new_data.param(p);
             }
-*/
+            fstat_points << "\n";
+
+            ofstream fout_t("output_t.txt", std::ios_base::app);
+            fout_t << "\n-------------\n\n\nStarting point:\n";
+            print_parameters(data, fout_t);
+            fout_t << "\nTrajectory:\n";
+            for (int k = 0; k < trajectory.size(); k++) {
+                for (int p = 0; p < PARAMS_NUM; p++) {
+                    fout_t << trajectory[k].data.param(p) << "\t";
+                }
+                fout_t << "\t" << trajectory[k].sigma << "\n";
+            }
         }
         catch (umax_achieved) {
             fout << "umax_achieved\n";

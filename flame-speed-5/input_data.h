@@ -108,6 +108,7 @@ struct Config {
     real_t gradient_descent_step_size;
     int gradient_descent_steps;  // number of steps for accepting or rejecting a range
     real_t lambda_min;  // minimal value of lambda
+    real_t sigma_threshold;
 
     real_t delta (int param) const
     {
