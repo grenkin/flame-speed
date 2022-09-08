@@ -533,7 +533,7 @@ int main (void)
             fout << "F = " << F << "\n";
             fout << "sigma = " << calc_sigma(input_param.model_parameters,
                 new_data, experimental_data, config) << "\n";
-
+/*
             // Calculate projections of the final point to the hyperplanes
             for (int p = 0; p < PARAMS_NUM; p++) {
                 ModelParametersToFind new_data_projection = new_data;
@@ -551,6 +551,7 @@ int main (void)
                 fout << "sigma = " << calc_sigma(input_param.model_parameters,
                     new_data, experimental_data, config) << "\n";
             }
+*/
         }
         catch (umax_achieved) {
             fout << "umax_achieved\n";

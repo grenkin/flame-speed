@@ -1,0 +1,551 @@
+Input range:
+A = 1000000000 .. 1e+10
+E/R = 30000 .. 35000
+alpha = 0.1 .. 0.5
+beta = 0.1 .. 0.5
+n = 0.1 .. 0.5
+
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 30000
+alpha = 0.1
+beta = 0.1
+n = 0.1
+
+Final point:
+A = 1.23672e+09
+E/R = 29083.3
+alpha = 0.022157
+beta = 0.260187
+n = 0.1232
+
+F = 0.00571185
+sigma = 0.0209612
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 30000
+alpha = 0.1
+beta = 0.1
+n = 0.1
+
+Final point:
+A = 7.23223e+09
+E/R = 30378.6
+alpha = 0.073259
+beta = 0.346282
+n = 0.0557568
+
+F = 0.00539301
+sigma = 0.0203678
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 35000
+alpha = 0.1
+beta = 0.1
+n = 0.1
+
+umax_achieved
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 35000
+alpha = 0.1
+beta = 0.1
+n = 0.1
+
+Final point:
+A = 1.58448e+10
+E/R = 32276.4
+alpha = 0.102015
+beta = 0.426437
+n = 0.14031
+
+F = 0.00558536
+sigma = 0.0207278
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 30000
+alpha = 0.5
+beta = 0.1
+n = 0.1
+
+umax_achieved
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 30000
+alpha = 0.5
+beta = 0.1
+n = 0.1
+
+Final point:
+A = 9.6463e+09
+E/R = 30016.2
+alpha = 0.145645
+beta = 0.451046
+n = 0.0940396
+
+F = 0.00505414
+sigma = 0.0197175
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 35000
+alpha = 0.5
+beta = 0.1
+n = 0.1
+
+umax_achieved
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 35000
+alpha = 0.5
+beta = 0.1
+n = 0.1
+
+umax_achieved
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 30000
+alpha = 0.1
+beta = 0.5
+n = 0.1
+
+Final point:
+A = 1.58816e+09
+E/R = 29086.5
+alpha = 0.0561293
+beta = 0.352043
+n = 0.16067
+
+F = 0.00532807
+sigma = 0.0202448
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 30000
+alpha = 0.1
+beta = 0.5
+n = 0.1
+
+Final point:
+A = 9.87517e+09
+E/R = 30064.9
+alpha = 0.12603
+beta = 0.484092
+n = 0.0982722
+
+F = 0.00506157
+sigma = 0.019732
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 35000
+alpha = 0.1
+beta = 0.5
+n = 0.1
+
+Final point:
+A = 3.30129e+09
+E/R = 31362.7
+alpha = 0.0792041
+beta = 0.381439
+n = 0.247218
+
+F = 0.00563388
+sigma = 0.0208177
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 35000
+alpha = 0.1
+beta = 0.5
+n = 0.1
+
+Final point:
+A = 1.9324e+10
+E/R = 32841.4
+alpha = 0.115914
+beta = 0.455707
+n = 0.17588
+
+F = 0.00565543
+sigma = 0.0208574
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 30000
+alpha = 0.5
+beta = 0.5
+n = 0.1
+
+Final point:
+A = 2.1192e+09
+E/R = 28625.2
+alpha = 0.15294
+beta = 0.444517
+n = 0.200736
+
+F = 0.00534465
+sigma = 0.0202763
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 30000
+alpha = 0.5
+beta = 0.5
+n = 0.1
+
+Final point:
+A = 1.30785e+10
+E/R = 29688.7
+alpha = 0.214802
+beta = 0.578862
+n = 0.13926
+
+F = 0.00528771
+sigma = 0.020168
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 35000
+alpha = 0.5
+beta = 0.5
+n = 0.1
+
+Final point:
+A = 3.82501e+09
+E/R = 31653
+alpha = 0.0982023
+beta = 0.409896
+n = 0.274446
+
+F = 0.00553321
+sigma = 0.0206308
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 35000
+alpha = 0.5
+beta = 0.5
+n = 0.1
+
+Final point:
+A = 2.33791e+10
+E/R = 32910.7
+alpha = 0.160264
+beta = 0.503905
+n = 0.208874
+
+F = 0.00533325
+sigma = 0.0202546
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 30000
+alpha = 0.1
+beta = 0.1
+n = 0.5
+
+Final point:
+A = 6.19944e+08
+E/R = 30584.6
+alpha = 0.0975961
+beta = 0.398924
+n = 0.436624
+
+F = 0.00532791
+sigma = 0.0202445
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 30000
+alpha = 0.1
+beta = 0.1
+n = 0.5
+
+Final point:
+A = 3.68482e+09
+E/R = 31670.6
+alpha = 0.161718
+beta = 0.511835
+n = 0.374064
+
+F = 0.00501475
+sigma = 0.0196405
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 35000
+alpha = 0.1
+beta = 0.1
+n = 0.5
+
+Final point:
+A = 1.00002e+09
+E/R = 35000
+alpha = 0.0999945
+beta = 0.100002
+n = 0.500002
+
+F = 0.0187192
+sigma = 0.0379465
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 35000
+alpha = 0.1
+beta = 0.1
+n = 0.5
+
+Final point:
+A = 7.2233e+09
+E/R = 34139.8
+alpha = 0.148617
+beta = 0.52474
+n = 0.44932
+
+F = 0.00611602
+sigma = 0.0216902
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 30000
+alpha = 0.5
+beta = 0.1
+n = 0.5
+
+Final point:
+A = 8.27609e+08
+E/R = 30243.3
+alpha = 0.168624
+beta = 0.503088
+n = 0.474434
+
+F = 0.00493534
+sigma = 0.0194844
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 30000
+alpha = 0.5
+beta = 0.1
+n = 0.5
+
+Final point:
+A = 5.06581e+09
+E/R = 31279.4
+alpha = 0.237217
+beta = 0.629065
+n = 0.412558
+
+F = 0.00484396
+sigma = 0.0193032
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 35000
+alpha = 0.5
+beta = 0.1
+n = 0.5
+
+Final point:
+A = 1.59568e+09
+E/R = 32703.5
+alpha = 0.149938
+beta = 0.518152
+n = 0.549605
+
+F = 0.00546069
+sigma = 0.0204952
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 35000
+alpha = 0.5
+beta = 0.1
+n = 0.5
+
+Final point:
+A = 9.46314e+09
+E/R = 34040.2
+alpha = 0.198166
+beta = 0.610357
+n = 0.48291
+
+F = 0.00542486
+sigma = 0.0204278
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 30000
+alpha = 0.1
+beta = 0.5
+n = 0.5
+
+Final point:
+A = 8.48836e+08
+E/R = 30330
+alpha = 0.150401
+beta = 0.530049
+n = 0.479035
+
+F = 0.00493818
+sigma = 0.01949
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 30000
+alpha = 0.1
+beta = 0.5
+n = 0.5
+
+Final point:
+A = 5.24389e+09
+E/R = 31236.4
+alpha = 0.229808
+beta = 0.665438
+n = 0.418344
+
+F = 0.00483941
+sigma = 0.0192941
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 35000
+alpha = 0.1
+beta = 0.5
+n = 0.5
+
+Final point:
+A = 1.66904e+09
+E/R = 32879
+alpha = 0.150296
+beta = 0.521069
+n = 0.557139
+
+F = 0.00553285
+sigma = 0.0206302
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 35000
+alpha = 0.1
+beta = 0.5
+n = 0.5
+
+Final point:
+A = 9.7241e+09
+E/R = 34174.3
+alpha = 0.198783
+beta = 0.615347
+n = 0.491237
+
+F = 0.00547248
+sigma = 0.0205173
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 30000
+alpha = 0.5
+beta = 0.5
+n = 0.5
+
+Final point:
+A = 1.14718e+09
+E/R = 29897
+alpha = 0.243722
+beta = 0.63179
+n = 0.519522
+
+F = 0.00510979
+sigma = 0.0198258
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 30000
+alpha = 0.5
+beta = 0.5
+n = 0.5
+
+Final point:
+A = 7.11664e+09
+E/R = 30904.4
+alpha = 0.313151
+beta = 0.769439
+n = 0.458267
+
+F = 0.00519332
+sigma = 0.0199872
+
+-------------
+Starting point:
+A = 1e+09
+E/R = 35000
+alpha = 0.5
+beta = 0.5
+n = 0.5
+
+Final point:
+A = 2.02847e+09
+E/R = 33082.5
+alpha = 0.184406
+beta = 0.564482
+n = 0.589341
+
+F = 0.00533855
+sigma = 0.0202647
+
+-------------
+Starting point:
+A = 1e+10
+E/R = 35000
+alpha = 0.5
+beta = 0.5
+n = 0.5
+
+Final point:
+A = 1.23208e+10
+E/R = 34146.9
+alpha = 0.251622
+beta = 0.684628
+n = 0.527057
+
+F = 0.00510818
+sigma = 0.0198226
